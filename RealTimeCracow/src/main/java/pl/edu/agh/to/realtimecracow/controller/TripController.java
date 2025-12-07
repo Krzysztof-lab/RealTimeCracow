@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.RestController;
 import pl.edu.agh.to.realtimecracow.model.Departure;
 import pl.edu.agh.to.realtimecracow.service.TripService;
 
+import java.io.IOException;
+
 @RestController
 public class TripController {
     private final TripService tripService;
@@ -16,7 +18,7 @@ public class TripController {
     }
 
     @RequestMapping("/departures")
-    public Departure getRandomDeparture() throws InvalidProtocolBufferException {
+    public Departure getRandomDeparture() throws IOException {
         return tripService.getRandomDeparture();
     }
 }
