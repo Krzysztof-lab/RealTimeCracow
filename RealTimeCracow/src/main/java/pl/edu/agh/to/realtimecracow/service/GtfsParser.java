@@ -22,19 +22,20 @@ import java.util.*;
 
 @Service
 public class GtfsParser {
-
     private final String gtfsFolder;
+    private static final List<Character> AGENCY_TYPES = List.of('A', 'M', 'T');
+
+    // Data structures to hold GTFS data (Cached in memory)
+    private final Map<String, String> stopIdToName = new HashMap<>();
+    private final Map<String, String> tripIdToRoute = new HashMap<>();
+    private final Map<String, Map<String, String>> tripIdToStopSeqToStopId = new HashMap<>();
+
     private final CSVFormat format = CSVFormat.Builder.create()
             .setHeader()
             .setSkipHeaderRecord(true)
             .setIgnoreSurroundingSpaces(true)
             .setTrim(true)
             .build();
-
-    private final Map<String, String> stopIdToName = new HashMap<>();
-    private final Map<String, String> tripIdToRoute = new HashMap<>();
-    private final Map<String, Map<String, String>> tripIdToStopSeqToStopId = new HashMap<>();
-
 
     public GtfsParser(@Value("${gtfs.gtfs-folder}") String gtfsFolder) {
         this.gtfsFolder = gtfsFolder;
@@ -48,78 +49,72 @@ public class GtfsParser {
     }
 
     private void loadStops() throws IOException {
-        for (char type : List.of('A', 'M', 'T')) {
+        for (char type : AGENCY_TYPES) {
             ClassPathResource resource = new ClassPathResource(gtfsFolder + type + "/stops.txt");
-            try (InputStream in = new BOMInputStream(resource.getInputStream());
+            try (InputStream in = BOMInputStream.builder()
+                    .setInputStream(resource.getInputStream())
+                    .get();
                  Reader reader = new InputStreamReader(in);
                  CSVParser parser = new CSVParser(reader, format)) {
-                for (CSVRecord record : parser) {
-                    stopIdToName.put(record.get("stop_id"), record.get("stop_name"));
+                for (CSVRecord CSVrecord : parser) {
+                    stopIdToName.put(CSVrecord.get("stop_id"), CSVrecord.get("stop_name"));
                 }
             }
         }
     }
 
     private void loadTrips() throws IOException {
-        for (char type : List.of('A', 'M', 'T')) {
+        for (char type : AGENCY_TYPES) {
             ClassPathResource resource = new ClassPathResource(gtfsFolder + type + "/trips.txt");
-            try (InputStream in = new BOMInputStream(resource.getInputStream());
+            try (InputStream in = BOMInputStream.builder()
+                    .setInputStream(resource.getInputStream())
+                    .get();
                  Reader reader = new InputStreamReader(in);
                  CSVParser parser = new CSVParser(reader, format)) {
-                for (CSVRecord record : parser) {
-                    tripIdToRoute.put(record.get("trip_id"), record.get("route_id"));
+                for (CSVRecord CSVrecord : parser) {
+                    tripIdToRoute.put(CSVrecord.get("trip_id"), CSVrecord.get("route_id"));
                 }
             }
         }
     }
 
     private void loadStopTimes() throws IOException {
-        for (char type : List.of('A', 'M', 'T')) {
+        for (char type : AGENCY_TYPES) {
             ClassPathResource resource = new ClassPathResource(gtfsFolder + type + "/stop_times.txt");
-            try (InputStream in = new BOMInputStream(resource.getInputStream());
+            try (InputStream in = BOMInputStream.builder()
+                    .setInputStream(resource.getInputStream())
+                    .get();
                  Reader reader = new InputStreamReader(in);
                  CSVParser parser = new CSVParser(reader, format)) {
-                for (CSVRecord record : parser) {
-                    String tripId = record.get("trip_id");
-                    String stopSeq = record.get("stop_sequence");
-                    String stopId = record.get("stop_id");
+                for (CSVRecord CSVrecord : parser) {
+                    String tripId = CSVrecord.get("trip_id");
+                    String stopSeq = CSVrecord.get("stop_sequence");
+                    String stopId = CSVrecord.get("stop_id");
 
                     tripIdToStopSeqToStopId
-                            .computeIfAbsent(tripId, k -> new HashMap<>())
+                            .computeIfAbsent(tripId, _ -> new HashMap<>())
                             .put(stopSeq, stopId);
                 }
             }
         }
     }
 
-
-    public List<StopInfo> getStopListForEntity(GtfsRealtime.FeedEntity entity) throws IOException {
+    public List<StopInfo> getStopListForEntity(GtfsRealtime.FeedEntity entity) {
         List<StopInfo> stops = new ArrayList<>();
         for (GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate : entity.getTripUpdate().getStopTimeUpdateList()) {
             if (stopTimeUpdate.hasDeparture()) {
-                long time = stopTimeUpdate.getDeparture().getTime();
-                Instant departureTime = Instant.ofEpochSecond(time);
-                String formattedDepartureTime = departureTime.atZone(ZoneId.systemDefault())
+                long departureTimestamp = stopTimeUpdate.getDeparture().getTime(); //no optional here, hasDeparture() checked
+                String formattedDepartureTime = Instant.ofEpochSecond(departureTimestamp)
+                        .atZone(ZoneId.systemDefault())
                         .format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-                time = stopTimeUpdate.getArrival().getTime();
-                Instant arrivalTime = Instant.ofEpochSecond(time);
-                String formattedArrivalTime = arrivalTime.atZone(ZoneId.systemDefault())
+
+                long arrivalTimestamp = stopTimeUpdate.getArrival().getTime(); //no optional here, if it hasDeparture(), it hasArrival()
+                String formattedArrivalTime = Instant.ofEpochSecond(arrivalTimestamp)
+                        .atZone(ZoneId.systemDefault())
                         .format(DateTimeFormatter.ofPattern("HH:mm:ss"));
 
 
-//                String stopId = getStopId(String.valueOf(stopTimeUpdate.getStopSequence()), entity.getId());
-//
-//                stops.add(new StopInfo(
-//                        stopId,
-//                        getStopName(stopId, entity.getId()),
-//                        formattedArrivalTime,
-//                        formattedDepartureTime,
-//                        stopTimeUpdate.getStopSequence()
-//                ));
-//            }
-//        }
-//        return stops;
-                String tripId = entity.getId().substring(7);
+                String tripId = extractTripId(entity.getId());
                 String stopId = tripIdToStopSeqToStopId.getOrDefault(tripId, Collections.emptyMap())
                         .get(String.valueOf(stopTimeUpdate.getStopSequence()));
                 String stopName = stopIdToName.get(stopId);
@@ -136,62 +131,11 @@ public class GtfsParser {
         return stops;
     }
 
-    private String getStopId(String stopSequence, String id) throws IOException {
-        char type = id.charAt(0);
-        String line_id = id.substring(7);
-        ClassPathResource resource = new ClassPathResource(gtfsFolder + type + "/stop_times.txt");
-
-        try (InputStream in = new BOMInputStream(resource.getInputStream());
-             Reader reader = new InputStreamReader(in);
-             CSVParser parser = new CSVParser(reader, format)) {
-
-            for (CSVRecord record : parser) {
-                if (record.get("trip_id").equals(line_id)
-                        && record.get("stop_sequence").equals(stopSequence)) {
-                    return record.get("stop_id");
-                }
-            }
-        }
-        return null;
+    public String getLineNumber(String id) {
+        return tripIdToRoute.get(extractTripId(id));
     }
 
-    private String getStopName(String stopId, String id) throws IOException {
-        char type = id.charAt(0);
-        ClassPathResource resource = new ClassPathResource(gtfsFolder + type + "/stops.txt");
-
-        try (InputStream in = new BOMInputStream(resource.getInputStream());
-             Reader reader = new InputStreamReader(in);
-             CSVParser parser = new CSVParser(reader, format)) {
-
-            for (CSVRecord record : parser) {
-                if (record.get("stop_id").equals(stopId)) {
-                    return record.get("stop_name");
-                }
-            }
-        }
-        return null;
-    }
-
-    public String getLineNumber(String id) throws IOException {
-//        char type = id.charAt(0);
-//        String line_id = id.substring(7);
-//        ClassPathResource resource = new ClassPathResource(gtfsFolder + type + "/trips.txt");
-//
-//        try (InputStream in = new BOMInputStream(resource.getInputStream());
-//             Reader reader = new InputStreamReader(in);
-//             CSVParser parser = new CSVParser(reader, format)) {
-//
-//            for (CSVRecord record : parser) {
-//
-//                String tripId = record.get("trip_id");
-//                if (tripId.contains(line_id)) {
-//                    return record.get("route_id");
-//                }
-//            }
-//        }
-//        return null;
-//    }
-
-        return tripIdToRoute.get(id.substring(7));
+    private String extractTripId(String entityId) {
+        return entityId.substring(7);
     }
 }

@@ -22,11 +22,13 @@ public class TripService {
         if (feed.getEntityCount() == 0) {
             return new Departure("No data", "-", "-");
         }
+
         GtfsRealtime.FeedEntity entity = feed.getEntity(0); // The first entity as a random example
         List<StopInfo> stops = gtfsParser.getStopListForEntity(entity);
         if (stops.isEmpty()) {
             return new Departure("No data", "-", "-");
         }
+
         return new Departure(
                 stops.getFirst().stopName(),
                 gtfsParser.getLineNumber(entity.getId()),
