@@ -29,7 +29,4 @@ public class GtfsMetadata {
 
     @Column(name = "last_modified")
     private String lastModified;
-
-    @Column(name = "file_size")
-    private Long fileSize;
 }

@@ -32,7 +32,6 @@ public class GtfsStaticLoader {
     private final RouteRepository routeRepository;
     private final TripRepository tripRepository;
     private final StopTimeRepository stopTimeRepository;
-    private final FeedInfoRepository feedInfoRepository;
 
     private final CSVFormat csvFormat = CSVFormat.Builder.create()
             .setHeader()
@@ -44,13 +43,11 @@ public class GtfsStaticLoader {
     public GtfsStaticLoader(StopRepository stopRepository,
                             RouteRepository routeRepository,
                             TripRepository tripRepository,
-                            StopTimeRepository stopTimeRepository,
-                            FeedInfoRepository feedInfoRepository) {
+                            StopTimeRepository stopTimeRepository) {
         this.stopRepository = stopRepository;
         this.routeRepository = routeRepository;
         this.tripRepository = tripRepository;
         this.stopTimeRepository = stopTimeRepository;
-        this.feedInfoRepository = feedInfoRepository;
     }
 
     @Transactional
@@ -73,8 +70,6 @@ public class GtfsStaticLoader {
                     loadTrips(zipFile.getInputStream(entry), feedType);
                 } else if (name.endsWith("stop_times.txt")) {
                     loadStopTimes(zipFile.getInputStream(entry), feedType);
-                } else if (name.endsWith("feed_info.txt")) {
-                    loadFeedInfo(zipFile.getInputStream(entry), feedType);
                 }
             }
         }
@@ -134,9 +129,6 @@ public class GtfsStaticLoader {
                 Route route = new Route();
                 route.setRouteId(record.get("route_id"));
                 route.setFeedType(feedType);
-                route.setRouteShortName(getOptionalField(record, "route_short_name"));
-                route.setRouteLongName(getOptionalField(record, "route_long_name"));
-                route.setRouteType(parseIntOrNull(getOptionalField(record, "route_type")));
 
                 batch.add(route);
                 count++;
@@ -168,8 +160,6 @@ public class GtfsStaticLoader {
                 trip.setTripId(record.get("trip_id"));
                 trip.setFeedType(feedType);
                 trip.setRouteId(getOptionalField(record, "route_id"));
-                trip.setServiceId(getOptionalField(record, "service_id"));
-                trip.setTripHeadsign(getOptionalField(record, "trip_headsign"));
 
                 batch.add(trip);
                 count++;
@@ -202,8 +192,6 @@ public class GtfsStaticLoader {
                 stopTime.setStopSequence(parseIntOrNull(record.get("stop_sequence")));
                 stopTime.setFeedType(feedType);
                 stopTime.setStopId(getOptionalField(record, "stop_id"));
-                stopTime.setArrivalTime(getOptionalField(record, "arrival_time"));
-                stopTime.setDepartureTime(getOptionalField(record, "departure_time"));
 
                 batch.add(stopTime);
                 count++;
@@ -219,29 +207,6 @@ public class GtfsStaticLoader {
             }
         }
         log.info("Loaded {} stop times for feed type {}", count, feedType);
-    }
-
-    private void loadFeedInfo(InputStream inputStream, String feedType) throws IOException {
-        log.info("Loading feed info for feed type {}", feedType);
-
-        try (Reader reader = new InputStreamReader(
-                BOMInputStream.builder().setInputStream(inputStream).get(), StandardCharsets.UTF_8);
-             CSVParser parser = new CSVParser(reader, csvFormat)) {
-
-            for (CSVRecord record : parser) {
-                FeedInfo feedInfo = new FeedInfo();
-                feedInfo.setFeedType(feedType);
-                feedInfo.setFeedPublisherName(getOptionalField(record, "feed_publisher_name"));
-                feedInfo.setFeedPublisherUrl(getOptionalField(record, "feed_publisher_url"));
-                feedInfo.setFeedLang(getOptionalField(record, "feed_lang"));
-                feedInfo.setFeedStartDate(getOptionalField(record, "feed_start_date"));
-                feedInfo.setFeedEndDate(getOptionalField(record, "feed_end_date"));
-                feedInfo.setFeedVersion(getOptionalField(record, "feed_version"));
-
-                feedInfoRepository.save(feedInfo);
-                break;
-            }
-        }
     }
 
     private String getOptionalField(CSVRecord record, String field) {

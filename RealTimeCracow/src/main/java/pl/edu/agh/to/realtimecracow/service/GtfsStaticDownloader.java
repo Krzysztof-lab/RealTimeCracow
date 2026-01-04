@@ -86,7 +86,6 @@ public class GtfsStaticDownloader {
             metadata.setLastModified(lastModified);
             metadata.setLastDownloadTime(Instant.now());
             metadata.setLastCheckTime(Instant.now());
-            metadata.setFileSize((long) data.length);
             metadataRepository.save(metadata);
 
             log.info("Downloaded feed {} successfully: {} bytes", feedType, data.length);

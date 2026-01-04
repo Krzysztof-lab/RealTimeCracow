@@ -30,12 +30,6 @@ public class StopTime {
     @Column(name = "stop_id")
     private String stopId;
 
-    @Column(name = "arrival_time")
-    private String arrivalTime;
-
-    @Column(name = "departure_time")
-    private String departureTime;
-
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
