@@ -6,10 +6,12 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import pl.edu.agh.to.realtimecracow.controller.TripController;
 import pl.edu.agh.to.realtimecracow.model.Departure;
 import pl.edu.agh.to.realtimecracow.service.GtfsClient;
+import pl.edu.agh.to.realtimecracow.service.GtfsDataService;
 import pl.edu.agh.to.realtimecracow.service.GtfsParser;
 import pl.edu.agh.to.realtimecracow.service.TripService;
 
@@ -17,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
+@ActiveProfiles("test")
 @DisplayName("RealTimeCracow Integration Tests")
 class RealTimeCracowIntegrationTest {
 
@@ -28,6 +31,9 @@ class RealTimeCracowIntegrationTest {
 
     @MockitoBean
     private GtfsClient gtfsClient;
+
+    @Autowired
+    private GtfsDataService gtfsDataService;
 
     @Autowired
     private GtfsParser gtfsParser;
