@@ -24,8 +24,6 @@ import java.util.*;
 public class GtfsParser {
     private final String gtfsFolder;
     private static final List<Character> AGENCY_TYPES = List.of('A', 'M', 'T');
-
-    // Data structures to hold GTFS data (Cached in memory)
     private final Map<String, String> stopIdToName = new HashMap<>();
     private final Map<String, String> tripIdToRoute = new HashMap<>();
     private final Map<String, Map<String, String>> tripIdToStopSeqToStopId = new HashMap<>();

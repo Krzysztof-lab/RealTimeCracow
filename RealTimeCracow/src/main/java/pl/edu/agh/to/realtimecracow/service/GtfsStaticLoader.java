@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pl.edu.agh.to.realtimecracow.model.entity.*;
+import pl.edu.agh.to.realtimecracow.entity.*;
 import pl.edu.agh.to.realtimecracow.repository.*;
 
 import java.io.IOException;
@@ -57,7 +57,6 @@ public class GtfsStaticLoader {
     public void loadFromZip(Path zipPath, String feedType) throws IOException {
         log.info("Loading GTFS data from {} for feed type {}", zipPath, feedType);
 
-        // Clear existing data for this feed type
         clearFeedData(feedType);
 
         try (ZipFile zipFile = ZipFile.builder().setPath(zipPath).get()) {
@@ -240,7 +239,7 @@ public class GtfsStaticLoader {
                 feedInfo.setFeedVersion(getOptionalField(record, "feed_version"));
 
                 feedInfoRepository.save(feedInfo);
-                break; // Only one record expected
+                break;
             }
         }
     }
@@ -249,17 +248,6 @@ public class GtfsStaticLoader {
         try {
             return record.get(field);
         } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
-    private Double parseDoubleOrNull(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return Double.parseDouble(value);
-        } catch (NumberFormatException e) {
             return null;
         }
     }

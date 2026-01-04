@@ -7,7 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import pl.edu.agh.to.realtimecracow.model.entity.GtfsMetadata;
+import pl.edu.agh.to.realtimecracow.entity.GtfsMetadata;
 import pl.edu.agh.to.realtimecracow.repository.GtfsMetadataRepository;
 
 import java.io.IOException;
@@ -39,7 +39,6 @@ public class GtfsStaticDownloader {
         log.info("Checking for updates: {}", url);
 
         try {
-            // Check headers first (HTTP HEAD)
             HttpHeaders headers = webClient.method(HttpMethod.HEAD)
                     .uri(url)
                     .retrieve()
@@ -51,7 +50,6 @@ public class GtfsStaticDownloader {
             String lastModified = headers.getFirst(HttpHeaders.LAST_MODIFIED);
             long contentLength = headers.getContentLength();
 
-            // Check if we need to download
             Optional<GtfsMetadata> existingMetadata = metadataRepository.findByFeedType(feedType);
             if (existingMetadata.isPresent()) {
                 GtfsMetadata metadata = existingMetadata.get();
@@ -66,7 +64,6 @@ public class GtfsStaticDownloader {
                 }
             }
 
-            // Download the file
             log.info("Downloading feed {}: {} bytes", feedType, contentLength);
             byte[] data = webClient.get()
                     .uri(url)
@@ -79,12 +76,10 @@ public class GtfsStaticDownloader {
                 return Optional.empty();
             }
 
-            // Save to temp file
             Path tempDir = Files.createTempDirectory("gtfs_");
             Path zipFile = tempDir.resolve("GTFS_KRK_" + feedType + ".zip");
             Files.write(zipFile, data);
 
-            // Update metadata
             GtfsMetadata metadata = existingMetadata.orElse(new GtfsMetadata());
             metadata.setFeedType(feedType);
             metadata.setEtag(etag);
@@ -100,36 +95,6 @@ public class GtfsStaticDownloader {
         } catch (Exception e) {
             log.error("Failed to download feed {}: {}", feedType, e.getMessage());
             return Optional.empty();
-        }
-    }
-
-    public boolean isUpdateAvailable(String feedType) {
-        String url = baseUrl + "/GTFS_KRK_" + feedType + ".zip";
-
-        try {
-            HttpHeaders headers = webClient.method(HttpMethod.HEAD)
-                    .uri(url)
-                    .retrieve()
-                    .toBodilessEntity()
-                    .block()
-                    .getHeaders();
-
-            String etag = headers.getETag();
-            String lastModified = headers.getFirst(HttpHeaders.LAST_MODIFIED);
-
-            Optional<GtfsMetadata> existingMetadata = metadataRepository.findByFeedType(feedType);
-            if (existingMetadata.isEmpty()) {
-                return true;
-            }
-
-            GtfsMetadata metadata = existingMetadata.get();
-            boolean etagMatch = etag != null && etag.equals(metadata.getEtag());
-            boolean lastModifiedMatch = lastModified != null && lastModified.equals(metadata.getLastModified());
-
-            return !etagMatch && !lastModifiedMatch;
-        } catch (Exception e) {
-            log.warn("Failed to check for updates: {}", e.getMessage());
-            return false;
         }
     }
 

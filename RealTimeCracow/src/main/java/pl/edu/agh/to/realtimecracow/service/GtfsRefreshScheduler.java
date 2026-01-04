@@ -48,7 +48,6 @@ public class GtfsRefreshScheduler {
                         dataService.getTripCount(),
                         dataService.getRouteCount());
 
-                // Check for updates asynchronously
                 checkForUpdates();
             }
         }
@@ -102,8 +101,6 @@ public class GtfsRefreshScheduler {
             log.info("GTFS feeds refreshed successfully");
         } else if (!dataService.hasData()) {
             log.warn("Failed to download GTFS data and database is empty. Using fallback (resources).");
-            // GtfsParser already loads data from resources in @PostConstruct
-            // Just refresh the cache from GtfsParser's in-memory data
             log.info("Fallback: GtfsParser has loaded data from resources");
         }
     }
@@ -120,17 +117,4 @@ public class GtfsRefreshScheduler {
         }
     }
 
-    public void forceRefresh() {
-        log.info("Force refreshing all GTFS feeds...");
-
-        for (String feedType : FEED_TYPES) {
-            try {
-                loader.clearFeedData(feedType);
-            } catch (Exception e) {
-                log.error("Failed to clear feed {}: {}", feedType, e.getMessage());
-            }
-        }
-
-        refreshAllFeeds();
-    }
 }

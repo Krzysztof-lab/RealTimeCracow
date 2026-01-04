@@ -1,4 +1,4 @@
-package pl.edu.agh.to.realtimecracow.model.entity;
+package pl.edu.agh.to.realtimecracow.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

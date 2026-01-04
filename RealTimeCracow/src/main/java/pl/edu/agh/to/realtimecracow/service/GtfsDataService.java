@@ -4,11 +4,9 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import pl.edu.agh.to.realtimecracow.model.entity.*;
 import pl.edu.agh.to.realtimecracow.repository.*;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -51,7 +49,7 @@ public class GtfsDataService {
         stopRepository.findAll().forEach(stop ->
                 stopIdToName.put(stop.getStopId(), stop.getStopName()));
 
-        // Load trips -> routes mapping
+        // Load trips
         tripRepository.findAll().forEach(trip ->
                 tripIdToRouteId.put(trip.getTripId(), trip.getRouteId()));
 
@@ -78,18 +76,6 @@ public class GtfsDataService {
         return seqToStop != null ? seqToStop.get(stopSequence) : null;
     }
 
-    public Optional<Route> getRouteById(String routeId) {
-        return routeRepository.findByRouteId(routeId);
-    }
-
-    public Optional<Stop> getStopById(String stopId) {
-        return stopRepository.findByStopId(stopId);
-    }
-
-    public Optional<Trip> getTripById(String tripId) {
-        return tripRepository.findByTripId(tripId);
-    }
-
     public boolean hasData() {
         return stopRepository.count() > 0;
     }
@@ -106,7 +92,4 @@ public class GtfsDataService {
         return routeRepository.count();
     }
 
-    public long getStopTimeCount() {
-        return stopTimeRepository.count();
-    }
 }
