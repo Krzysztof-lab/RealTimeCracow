@@ -1,5 +1,8 @@
 package pl.edu.agh.to.realtimecracow.controller;
 
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestParam;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -11,6 +14,8 @@ import pl.edu.agh.to.realtimecracow.model.Departure;
 import pl.edu.agh.to.realtimecracow.service.TripService;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+
 
 @RestController
 @RequestMapping("/departures")
@@ -24,10 +29,19 @@ public class TripController {
 
     @GetMapping
     @Operation(
-            summary = "Pobiera przykladowy odjazd",
-            description = "Pobiera przykladowy odjazd"
+            summary = "Najbliższe bezpośrednie połączenie",
+            description = "Zwraca najszybsze bezpośrednie połączenie między przystankami z uwzględnieniem kalendarza"
     )
-    public Departure getRandomDeparture() throws IOException {
-        return tripService.getRandomDeparture();
+
+    public ResponseEntity<Departure> getNextDirect(
+            @RequestParam String from,
+            @RequestParam String to,
+            @RequestParam(required = false) String at
+    ) throws IOException {
+        LocalDateTime dateTime = (at == null) ? LocalDateTime.now() : LocalDateTime.parse(at);
+
+        return tripService.getNextDirectDeparture(from, to, dateTime)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

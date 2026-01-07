@@ -13,6 +13,10 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.time.LocalDateTime;
+
 
 @Service
 public class TripService {
@@ -21,6 +25,7 @@ public class TripService {
     private final GtfsClient gtfsClient;
     private final GtfsDataService gtfsDataService;
     private final GtfsParser gtfsParser;
+
 
     public TripService(GtfsClient gtfsClient,
                        GtfsDataService gtfsDataService,
@@ -31,6 +36,7 @@ public class TripService {
     }
 
     public Departure getRandomDeparture() throws IOException {
+
         GtfsRealtime.FeedMessage feed = gtfsClient.getTripUpdatesFeed();
         if (feed.getEntityCount() == 0) {
             return new Departure("No data", "-", "-");
@@ -64,6 +70,35 @@ public class TripService {
                 stops.getFirst().departureTime()
         );
     }
+
+    public Optional<Departure> getNextDirectDeparture(String fromStopName, String toStopName, LocalDateTime at) throws IOException {
+
+        String fromStopId = gtfsDataService.getStopIdByStopName(fromStopName);
+        String toStopId = gtfsDataService.getStopIdByStopName(toStopName);
+        if (fromStopId == null || toStopId == null) {
+            return Optional.empty();
+        }
+        Set<String> activeServiceIds = gtfsDataService.getActiveServiceIds(at.toLocalDate());
+        if (activeServiceIds.isEmpty()) {
+            return Optional.empty();
+        }
+
+        var best = gtfsDataService.findBestDirectTrip(fromStopId, toStopId, at, activeServiceIds);
+        if (best == null) {
+            return Optional.empty();
+        }
+
+        String predictedDeparture = best.departureTime();
+        String lineNumber = (best.routeId() != null) ? best.routeId() : "-";
+
+        String realtimeArrival = getRealtimeArrivalTimeIfAvailable(best.tripId(), toStopId);
+
+        return Optional.of(new Departure(fromStopName, lineNumber, predictedDeparture));
+    }
+    private String getRealtimeArrivalTimeIfAvailable(String tripId, String toStopId) throws IOException {
+        return null;
+    }
+
 
     private List<StopInfo> getStopListFromDatabase(GtfsRealtime.FeedEntity entity) {
         List<StopInfo> stops = new ArrayList<>();
@@ -105,3 +140,4 @@ public class TripService {
         return entityId.substring(7);
     }
 }
+

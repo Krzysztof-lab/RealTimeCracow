@@ -8,6 +8,10 @@ import pl.edu.agh.to.realtimecracow.repository.*;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Set;
 
 @Service
 public class GtfsDataService {
@@ -18,19 +22,27 @@ public class GtfsDataService {
     private final TripRepository tripRepository;
     private final StopTimeRepository stopTimeRepository;
 
+    private final ServiceCalendarService serviceCalendarService;
+    private final DirectConnectionRepository directConnectionRepository;
+    private static final String DEFAULT_FEED_TYPE = "M";
+
     // In-memory cache for fast lookups
     private final Map<String, String> stopIdToName = new ConcurrentHashMap<>();
     private final Map<String, String> tripIdToRouteId = new ConcurrentHashMap<>();
     private final Map<String, Map<Integer, String>> tripIdToStopSeqToStopId = new ConcurrentHashMap<>();
+    private final Map<String, String> stopNameToId = new ConcurrentHashMap<>();
 
     public GtfsDataService(StopRepository stopRepository,
                            RouteRepository routeRepository,
                            TripRepository tripRepository,
-                           StopTimeRepository stopTimeRepository) {
+                           StopTimeRepository stopTimeRepository,ServiceCalendarService serviceCalendarService,
+                           DirectConnectionRepository directConnectionRepository ) {
         this.stopRepository = stopRepository;
         this.routeRepository = routeRepository;
         this.tripRepository = tripRepository;
         this.stopTimeRepository = stopTimeRepository;
+        this.serviceCalendarService = serviceCalendarService;
+        this.directConnectionRepository = directConnectionRepository;
     }
 
     @PostConstruct
@@ -39,15 +51,20 @@ public class GtfsDataService {
     }
 
     public void refreshCache() {
+
         log.info("Refreshing GTFS data cache from database...");
 
+        stopNameToId.clear();
         stopIdToName.clear();
         tripIdToRouteId.clear();
         tripIdToStopSeqToStopId.clear();
 
         // Load stops
-        stopRepository.findAll().forEach(stop ->
-                stopIdToName.put(stop.getStopId(), stop.getStopName()));
+        stopRepository.findAll().forEach(stop -> {
+            stopIdToName.put(stop.getStopId(), stop.getStopName());
+            stopNameToId.put(stop.getStopName(), stop.getStopId());
+        });
+
 
         // Load trips
         tripRepository.findAll().forEach(trip ->
@@ -90,6 +107,25 @@ public class GtfsDataService {
 
     public long getRouteCount() {
         return routeRepository.count();
+    }
+
+    public String getStopIdByStopName(String stopName) {
+        return stopNameToId.get(stopName);
+    }
+
+    public Set<String> getActiveServiceIds(LocalDate date) {
+        return serviceCalendarService.activeServiceIds(date);
+    }
+    public record DirectTripResult(String tripId, String routeId, String departureTime, String arrivalTime) {}
+
+    public DirectTripResult findBestDirectTrip(String fromStopId, String toStopId, LocalDateTime at, Set<String> serviceIds) {
+        String fromTime = at.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+
+        DirectConnectionRepository.DirectTripRow row =
+                directConnectionRepository.findBestDirectTrip(DEFAULT_FEED_TYPE, fromStopId, toStopId, fromTime, serviceIds);
+        if (row == null) return null;
+
+        return new DirectTripResult(row.tripId(), row.routeId(), row.departureTime(), row.arrivalTime());
     }
 
 }

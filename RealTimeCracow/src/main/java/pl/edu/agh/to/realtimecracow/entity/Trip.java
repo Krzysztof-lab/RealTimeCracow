@@ -26,6 +26,9 @@ public class Trip {
     @Column(name = "route_id")
     private String routeId;
 
+    @Column(name = "service_id")
+    private String serviceId;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
