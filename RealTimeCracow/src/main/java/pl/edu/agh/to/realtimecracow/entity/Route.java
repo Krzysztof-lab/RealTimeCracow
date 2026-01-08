@@ -23,6 +23,9 @@ public class Route {
     @Column(name = "feed_type", nullable = false, length = 1)
     private String feedType;
 
+    @Column(name = "route_short_name")
+    private String routeShortName;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

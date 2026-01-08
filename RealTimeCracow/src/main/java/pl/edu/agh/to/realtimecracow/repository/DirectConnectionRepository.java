@@ -18,14 +18,18 @@ public class DirectConnectionRepository {
 
     public DirectTripRow findBestDirectTrip(
             String feedType,
-            String fromStopId,
-            String toStopId,
+            List<String> fromStopIds,
+            List<String> toStopIds,
             String fromTime,
             Set<String> serviceIds
     ) {
         if (serviceIds == null || serviceIds.isEmpty()) return null;
+        if (fromStopIds == null || fromStopIds.isEmpty()) return null;
+        if (toStopIds == null || toStopIds.isEmpty()) return null;
 
-        String in = String.join(",", Collections.nCopies(serviceIds.size(), "?"));
+        String serviceIn = String.join(",", Collections.nCopies(serviceIds.size(), "?"));
+        String fromIn = String.join(",", Collections.nCopies(fromStopIds.size(), "?"));
+        String toIn = String.join(",", Collections.nCopies(toStopIds.size(), "?"));
 
         String sql = """
             SELECT t.trip_id,
@@ -38,19 +42,19 @@ public class DirectConnectionRepository {
             JOIN stop_time st_to
               ON st_to.trip_id = t.trip_id AND st_to.feed_type = t.feed_type
             WHERE t.feed_type = ?
-              AND st_from.stop_id = ?
-              AND st_to.stop_id   = ?
+              AND st_from.stop_id IN (%s)
+              AND st_to.stop_id IN (%s)
               AND st_from.stop_sequence < st_to.stop_sequence
               AND st_from.departure_time >= ?
               AND t.service_id IN (%s)
-            ORDER BY st_to.arrival_time ASC
+            ORDER BY st_from.departure_time ASC
             LIMIT 1
-        """.formatted(in);
+        """.formatted(fromIn, toIn, serviceIn);
 
         List<Object> params = new ArrayList<>();
         params.add(feedType);
-        params.add(fromStopId);
-        params.add(toStopId);
+        params.addAll(fromStopIds);
+        params.addAll(toStopIds);
         params.add(fromTime);
         params.addAll(serviceIds);
 

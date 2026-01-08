@@ -143,6 +143,7 @@ public class GtfsStaticLoader {
                 Route route = new Route();
                 route.setRouteId(record.get("route_id"));
                 route.setFeedType(feedType);
+                route.setRouteShortName(getOptionalField(record, "route_short_name"));
 
                 batch.add(route);
                 count++;
@@ -174,6 +175,7 @@ public class GtfsStaticLoader {
                 trip.setTripId(record.get("trip_id"));
                 trip.setFeedType(feedType);
                 trip.setRouteId(getOptionalField(record, "route_id"));
+                trip.setServiceId(getOptionalField(record, "service_id"));
 
                 batch.add(trip);
                 count++;
@@ -206,6 +208,8 @@ public class GtfsStaticLoader {
                 stopTime.setStopSequence(parseIntOrNull(record.get("stop_sequence")));
                 stopTime.setFeedType(feedType);
                 stopTime.setStopId(getOptionalField(record, "stop_id"));
+                stopTime.setArrivalTime(getOptionalField(record, "arrival_time"));
+                stopTime.setDepartureTime(getOptionalField(record, "departure_time"));
 
                 batch.add(stopTime);
                 count++;

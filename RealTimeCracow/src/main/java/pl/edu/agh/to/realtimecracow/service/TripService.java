@@ -44,7 +44,6 @@ public class TripService {
 
         GtfsRealtime.FeedEntity entity = feed.getEntity(0);
 
-        // Try database first, fallback to GtfsParser
         if (gtfsDataService.hasData()) {
             List<StopInfo> stops = getStopListFromDatabase(entity);
             if (!stops.isEmpty()) {
@@ -57,7 +56,6 @@ public class TripService {
             }
         }
 
-        // Fallback to GtfsParser
         log.debug("Using GtfsParser fallback for entity {}", entity.getId());
         List<StopInfo> stops = gtfsParser.getStopListForEntity(entity);
         if (stops.isEmpty()) {
@@ -73,28 +71,26 @@ public class TripService {
 
     public Optional<Departure> getNextDirectDeparture(String feedType, String fromStopName, String toStopName, LocalDateTime at) throws IOException {
 
-        String fromStopId = gtfsDataService.getStopIdByStopName(fromStopName);
-        String toStopId = gtfsDataService.getStopIdByStopName(toStopName);
-        if (fromStopId == null || toStopId == null) {
+        List<String> fromStopIds = gtfsDataService.getStopIdsByStopName(fromStopName);
+        List<String> toStopIds = gtfsDataService.getStopIdsByStopName(toStopName);
+        if (fromStopIds.isEmpty() || toStopIds.isEmpty()) {
             return Optional.empty();
         }
-        Set<String> activeServiceIds = gtfsDataService.getActiveServiceIds(feedType, at.toLocalDate());        if (activeServiceIds.isEmpty()) {
+        Set<String> activeServiceIds = gtfsDataService.getActiveServiceIds(feedType, at.toLocalDate());
+        if (activeServiceIds.isEmpty()) {
             return Optional.empty();
         }
 
-        var best = gtfsDataService.findBestDirectTrip(feedType, fromStopId, toStopId, at, activeServiceIds);        if (best == null) {
+        var best = gtfsDataService.findBestDirectTrip(feedType, fromStopIds, toStopIds, at, activeServiceIds);
+        if (best == null) {
             return Optional.empty();
         }
 
         String predictedDeparture = best.departureTime();
-        String lineNumber = (best.routeId() != null) ? best.routeId() : "-";
-
-        String realtimeArrival = getRealtimeArrivalTimeIfAvailable(best.tripId(), toStopId);
+        String routeShortName = gtfsDataService.getRouteShortName(best.routeId());
+        String lineNumber = (routeShortName != null) ? routeShortName : "-";
 
         return Optional.of(new Departure(fromStopName, lineNumber, predictedDeparture));
-    }
-    private String getRealtimeArrivalTimeIfAvailable(String tripId, String toStopId) throws IOException {
-        return null;
     }
 
 
