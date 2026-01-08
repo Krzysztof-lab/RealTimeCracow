@@ -85,14 +85,52 @@ public class TripService {
         if (best == null) {
             return Optional.empty();
         }
+        String actualDepartureTime;
+        try {
+            String realtimeDeparture = getRealtimeDepartureTime(best.tripId(), fromStopIds);
+            actualDepartureTime = (realtimeDeparture != null) ? realtimeDeparture : best.departureTime();
+        } catch (IOException e) {
+            log.warn("Failed to get realtime data, using scheduled time", e);
+            actualDepartureTime = best.departureTime();
+        }
 
-        String predictedDeparture = best.departureTime();
         String routeShortName = gtfsDataService.getRouteShortName(best.routeId());
         String lineNumber = (routeShortName != null) ? routeShortName : "-";
 
-        return Optional.of(new Departure(fromStopName, lineNumber, predictedDeparture));
+        return Optional.of(new Departure(fromStopName, lineNumber, actualDepartureTime));
     }
 
+
+    private String getRealtimeDepartureTime(String tripId, List<String> stopIds) throws IOException {
+        GtfsRealtime.FeedMessage feed = gtfsClient.getTripUpdatesFeed();
+        if(tripId.startsWith("block")) {
+            tripId = tripId.replaceFirst("^block", "")
+                    .replaceFirst("_service_1$", "");
+        }
+        //System.out.println("Looking for Trip ID: " + tripId);
+        for (GtfsRealtime.FeedEntity entity : feed.getEntityList()) {
+            if (!entity.hasTripUpdate()) continue;
+
+            GtfsRealtime.TripUpdate tripUpdate = entity.getTripUpdate();
+            String entityTripId = extractTripId(entity.getId());
+
+            if (!entityTripId.equals(tripId)) continue;
+            for (GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate : tripUpdate.getStopTimeUpdateList()) {
+                String stopId = gtfsDataService.getStopIdForTripAndSequence(
+                        entityTripId,
+                        stopTimeUpdate.getStopSequence()
+                );
+
+                if (stopIds.contains(stopId) && stopTimeUpdate.hasDeparture()) {
+                    long realtimeTimestamp = stopTimeUpdate.getDeparture().getTime();
+                    return Instant.ofEpochSecond(realtimeTimestamp)
+                            .atZone(ZoneId.systemDefault())
+                            .format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+                }
+            }
+        }
+        return null;
+    }
 
     private List<StopInfo> getStopListFromDatabase(GtfsRealtime.FeedEntity entity) {
         List<StopInfo> stops = new ArrayList<>();
