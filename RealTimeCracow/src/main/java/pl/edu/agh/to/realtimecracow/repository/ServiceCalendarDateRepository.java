@@ -6,5 +6,6 @@ import pl.edu.agh.to.realtimecracow.entity.ServiceCalendarDate;
 import java.util.List;
 
 public interface ServiceCalendarDateRepository extends JpaRepository<ServiceCalendarDate, Long> {
-    List<ServiceCalendarDate> findByDate(String date); // YYYYMMDD
+    List<ServiceCalendarDate> findByFeedTypeAndDate(String feedType, String date);
+    void deleteByFeedType(String feedType);
 }

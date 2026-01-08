@@ -1,15 +1,18 @@
 package pl.edu.agh.to.realtimecracow.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
 @Table(name = "service_calendar")
+@IdClass(ServiceCalendarId.class)
 @Data
 public class ServiceCalendar {
+
+
+    @Id
+    @Column(name = "feed_type", nullable = false)
+    private String feedType;
 
     @Id
     @Column(name = "service_id")

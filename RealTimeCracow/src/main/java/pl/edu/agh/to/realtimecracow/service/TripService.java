@@ -71,20 +71,18 @@ public class TripService {
         );
     }
 
-    public Optional<Departure> getNextDirectDeparture(String fromStopName, String toStopName, LocalDateTime at) throws IOException {
+    public Optional<Departure> getNextDirectDeparture(String feedType, String fromStopName, String toStopName, LocalDateTime at) throws IOException {
 
         String fromStopId = gtfsDataService.getStopIdByStopName(fromStopName);
         String toStopId = gtfsDataService.getStopIdByStopName(toStopName);
         if (fromStopId == null || toStopId == null) {
             return Optional.empty();
         }
-        Set<String> activeServiceIds = gtfsDataService.getActiveServiceIds(at.toLocalDate());
-        if (activeServiceIds.isEmpty()) {
+        Set<String> activeServiceIds = gtfsDataService.getActiveServiceIds(feedType, at.toLocalDate());        if (activeServiceIds.isEmpty()) {
             return Optional.empty();
         }
 
-        var best = gtfsDataService.findBestDirectTrip(fromStopId, toStopId, at, activeServiceIds);
-        if (best == null) {
+        var best = gtfsDataService.findBestDirectTrip(feedType, fromStopId, toStopId, at, activeServiceIds);        if (best == null) {
             return Optional.empty();
         }
 

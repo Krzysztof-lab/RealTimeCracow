@@ -32,6 +32,8 @@ public class GtfsStaticLoader {
     private final RouteRepository routeRepository;
     private final TripRepository tripRepository;
     private final StopTimeRepository stopTimeRepository;
+    private final ServiceCalendarRepository serviceCalendarRepository;
+    private final ServiceCalendarDateRepository serviceCalendarDateRepository;
 
     private final CSVFormat csvFormat = CSVFormat.Builder.create()
             .setHeader()
@@ -43,12 +45,16 @@ public class GtfsStaticLoader {
     public GtfsStaticLoader(StopRepository stopRepository,
                             RouteRepository routeRepository,
                             TripRepository tripRepository,
-                            StopTimeRepository stopTimeRepository) {
+                            StopTimeRepository stopTimeRepository, ServiceCalendarRepository serviceCalendarRepository,
+                            ServiceCalendarDateRepository serviceCalendarDateRepository) {
         this.stopRepository = stopRepository;
         this.routeRepository = routeRepository;
         this.tripRepository = tripRepository;
         this.stopTimeRepository = stopTimeRepository;
+        this.serviceCalendarRepository = serviceCalendarRepository;
+        this.serviceCalendarDateRepository = serviceCalendarDateRepository;
     }
+
 
     @Transactional
     public void loadFromZip(Path zipPath, String feedType) throws IOException {
@@ -71,6 +77,11 @@ public class GtfsStaticLoader {
                 } else if (name.endsWith("stop_times.txt")) {
                     loadStopTimes(zipFile.getInputStream(entry), feedType);
                 }
+                else if (name.endsWith("calendar.txt")) {
+                    loadServiceCalendar(zipFile.getInputStream(entry), feedType);
+                } else if (name.endsWith("calendar_dates.txt")) {
+                    loadServiceCalendarDates(zipFile.getInputStream(entry), feedType);
+                }
             }
         }
 
@@ -84,7 +95,10 @@ public class GtfsStaticLoader {
         tripRepository.deleteByFeedType(feedType);
         routeRepository.deleteByFeedType(feedType);
         stopRepository.deleteByFeedType(feedType);
+        serviceCalendarDateRepository.deleteByFeedType(feedType);
+        serviceCalendarRepository.deleteByFeedType(feedType);
     }
+
 
     private void loadStops(InputStream inputStream, String feedType) throws IOException {
         log.info("Loading stops for feed type {}", feedType);
@@ -227,4 +241,69 @@ public class GtfsStaticLoader {
             return null;
         }
     }
+
+private void loadServiceCalendar(InputStream inputStream, String feedType) throws IOException {
+    List<ServiceCalendar> batch = new ArrayList<>();
+
+    try (Reader reader = new InputStreamReader(
+            BOMInputStream.builder().setInputStream(inputStream).get(), StandardCharsets.UTF_8);
+         CSVParser parser = new CSVParser(reader, csvFormat)) {
+
+        for (CSVRecord r : parser) {
+            ServiceCalendar c = new ServiceCalendar();
+            c.setFeedType(feedType);
+            c.setServiceId(r.get("service_id"));
+            c.setMonday(Integer.parseInt(r.get("monday")));
+            c.setTuesday(Integer.parseInt(r.get("tuesday")));
+            c.setWednesday(Integer.parseInt(r.get("wednesday")));
+            c.setThursday(Integer.parseInt(r.get("thursday")));
+            c.setFriday(Integer.parseInt(r.get("friday")));
+            c.setSaturday(Integer.parseInt(r.get("saturday")));
+            c.setSunday(Integer.parseInt(r.get("sunday")));
+            c.setStartDate(r.get("start_date"));
+            c.setEndDate(r.get("end_date"));
+
+            batch.add(c);
+
+            if (batch.size() >= BATCH_SIZE) {
+                serviceCalendarRepository.saveAll(batch);
+                batch.clear();
+            }
+        }
+
+        if (!batch.isEmpty()) {
+            serviceCalendarRepository.saveAll(batch);
+        }
+    }
+}
+
+private void loadServiceCalendarDates(InputStream inputStream, String feedType) throws IOException {
+    List<ServiceCalendarDate> batch = new ArrayList<>();
+
+    try (Reader reader = new InputStreamReader(
+            BOMInputStream.builder().setInputStream(inputStream).get(), StandardCharsets.UTF_8);
+         CSVParser parser = new CSVParser(reader, csvFormat)) {
+
+        for (CSVRecord r : parser) {
+            ServiceCalendarDate d = new ServiceCalendarDate();
+            d.setFeedType(feedType);
+            d.setServiceId(r.get("service_id"));
+            d.setDate(r.get("date"));
+            d.setExceptionType(Integer.parseInt(r.get("exception_type")));
+
+            batch.add(d);
+
+            if (batch.size() >= BATCH_SIZE) {
+                serviceCalendarDateRepository.saveAll(batch);
+                batch.clear();
+            }
+        }
+
+        if (!batch.isEmpty()) {
+            serviceCalendarDateRepository.saveAll(batch);
+        }
+    }
+}
+
+
 }

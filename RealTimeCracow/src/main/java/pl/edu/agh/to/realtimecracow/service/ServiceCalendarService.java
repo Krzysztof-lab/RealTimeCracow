@@ -25,18 +25,18 @@ public class ServiceCalendarService {
         this.calDateRepo = calDateRepo;
     }
 
-    public Set<String> activeServiceIds(LocalDate date) {
+    public Set<String> activeServiceIds(String feedType, LocalDate date) {
         String yyyymmdd = date.format(DateTimeFormatter.BASIC_ISO_DATE);
         DayOfWeek dow = date.getDayOfWeek();
 
-        Set<String> active = calRepo.findAll().stream()
+        Set<String> active = calRepo.findByFeedType(feedType).stream()
                 .filter(c -> c.getStartDate().compareTo(yyyymmdd) <= 0)
                 .filter(c -> c.getEndDate().compareTo(yyyymmdd) >= 0)
                 .filter(c -> runsOnDay(c, dow))
                 .map(ServiceCalendar::getServiceId)
                 .collect(Collectors.toCollection(HashSet::new));
 
-        for (ServiceCalendarDate ex : calDateRepo.findByDate(yyyymmdd)) {
+        for (ServiceCalendarDate ex : calDateRepo.findByFeedTypeAndDate(feedType, yyyymmdd)) {
             if (ex.getExceptionType() == 1) active.add(ex.getServiceId());
             if (ex.getExceptionType() == 2) active.remove(ex.getServiceId());
         }

@@ -30,17 +30,18 @@ public class TripController {
     @GetMapping
     @Operation(
             summary = "Najbliższe bezpośrednie połączenie",
-            description = "Zwraca najszybsze bezpośrednie połączenie między przystankami z uwzględnieniem kalendarza"
+            description = "Najszybsze bezpośrednie połączenie między przystankami z uwzględnieniem kalendarza"
     )
 
     public ResponseEntity<Departure> getNextDirect(
             @RequestParam String from,
             @RequestParam String to,
-            @RequestParam(required = false) String at
+            @RequestParam(required = false) String at,
+            @RequestParam String feedType
     ) throws IOException {
         LocalDateTime dateTime = (at == null) ? LocalDateTime.now() : LocalDateTime.parse(at);
 
-        return tripService.getNextDirectDeparture(from, to, dateTime)
+        return tripService.getNextDirectDeparture(feedType, from, to, dateTime)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

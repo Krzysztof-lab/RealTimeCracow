@@ -10,6 +10,9 @@ public class ServiceCalendarDate {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "feed_type", nullable = false)
+    private String feedType;
+
     @Column(name = "service_id", nullable = false)
     private String serviceId;
 
@@ -31,4 +34,7 @@ public class ServiceCalendarDate {
 
     public int getExceptionType() { return exceptionType; }
     public void setExceptionType(int exceptionType) { this.exceptionType = exceptionType; }
+    public String getFeedType() { return feedType; }
+    public void setFeedType(String feedType) { this.feedType = feedType; }
+
 }

@@ -24,7 +24,6 @@ public class GtfsDataService {
 
     private final ServiceCalendarService serviceCalendarService;
     private final DirectConnectionRepository directConnectionRepository;
-    private static final String DEFAULT_FEED_TYPE = "M";
 
     // In-memory cache for fast lookups
     private final Map<String, String> stopIdToName = new ConcurrentHashMap<>();
@@ -113,16 +112,17 @@ public class GtfsDataService {
         return stopNameToId.get(stopName);
     }
 
-    public Set<String> getActiveServiceIds(LocalDate date) {
-        return serviceCalendarService.activeServiceIds(date);
+    public Set<String> getActiveServiceIds(String feedType, LocalDate date) {
+        return serviceCalendarService.activeServiceIds(feedType, date);
     }
     public record DirectTripResult(String tripId, String routeId, String departureTime, String arrivalTime) {}
 
-    public DirectTripResult findBestDirectTrip(String fromStopId, String toStopId, LocalDateTime at, Set<String> serviceIds) {
+    public DirectTripResult findBestDirectTrip(String feedType, String fromStopId, String toStopId,
+                                               LocalDateTime at, Set<String> serviceIds) {
         String fromTime = at.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
 
         DirectConnectionRepository.DirectTripRow row =
-                directConnectionRepository.findBestDirectTrip(DEFAULT_FEED_TYPE, fromStopId, toStopId, fromTime, serviceIds);
+                directConnectionRepository.findBestDirectTrip(feedType, fromStopId, toStopId, fromTime, serviceIds);
         if (row == null) return null;
 
         return new DirectTripResult(row.tripId(), row.routeId(), row.departureTime(), row.arrivalTime());
