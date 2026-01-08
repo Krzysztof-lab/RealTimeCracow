@@ -69,7 +69,7 @@ public class TripService {
         );
     }
 
-    public Optional<Departure> getNextDirectDeparture(String feedType, String fromStopName, String toStopName, LocalDateTime at) throws IOException {
+    public Optional<Departure> getNextDirectDeparture(String feedType, String fromStopName, String toStopName, LocalDateTime at) {
 
         List<String> fromStopIds = gtfsDataService.getStopIdsByStopName(fromStopName);
         List<String> toStopIds = gtfsDataService.getStopIdsByStopName(toStopName);

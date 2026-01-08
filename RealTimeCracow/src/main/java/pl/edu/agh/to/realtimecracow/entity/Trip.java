@@ -32,6 +32,7 @@ public class Trip {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    @SuppressWarnings("java:S1700") // JPA @IdClass requires field names to match entity
     public static class TripId implements Serializable {
         private String tripId;
         private String feedType;

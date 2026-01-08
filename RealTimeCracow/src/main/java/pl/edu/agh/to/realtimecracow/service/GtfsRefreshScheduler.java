@@ -116,5 +116,4 @@ public class GtfsRefreshScheduler {
             downloader.cleanupTempFiles(tempDir);
         }
     }
-
 }

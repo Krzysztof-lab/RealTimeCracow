@@ -29,6 +29,7 @@ public class Stop {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    @SuppressWarnings("java:S1700") // JPA @IdClass requires field names to match entity
     public static class StopId implements Serializable {
         private String stopId;
         private String feedType;

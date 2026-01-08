@@ -88,7 +88,6 @@ public class GtfsStaticLoader {
         log.info("Finished loading GTFS data for feed type {}", feedType);
     }
 
-    @Transactional
     public void clearFeedData(String feedType) {
         log.info("Clearing existing data for feed type {}", feedType);
         stopTimeRepository.deleteByFeedType(feedType);
@@ -109,11 +108,11 @@ public class GtfsStaticLoader {
                 BOMInputStream.builder().setInputStream(inputStream).get(), StandardCharsets.UTF_8);
              CSVParser parser = new CSVParser(reader, csvFormat)) {
 
-            for (CSVRecord record : parser) {
+            for (CSVRecord csvRecord : parser) {
                 Stop stop = new Stop();
-                stop.setStopId(record.get("stop_id"));
+                stop.setStopId(csvRecord.get("stop_id"));
                 stop.setFeedType(feedType);
-                stop.setStopName(getOptionalField(record, "stop_name"));
+                stop.setStopName(getOptionalField(csvRecord, "stop_name"));
                 batch.add(stop);
                 count++;
 
@@ -139,11 +138,11 @@ public class GtfsStaticLoader {
                 BOMInputStream.builder().setInputStream(inputStream).get(), StandardCharsets.UTF_8);
              CSVParser parser = new CSVParser(reader, csvFormat)) {
 
-            for (CSVRecord record : parser) {
+            for (CSVRecord csvRecord : parser) {
                 Route route = new Route();
-                route.setRouteId(record.get("route_id"));
+                route.setRouteId(csvRecord.get("route_id"));
                 route.setFeedType(feedType);
-                route.setRouteShortName(getOptionalField(record, "route_short_name"));
+                route.setRouteShortName(getOptionalField(csvRecord, "route_short_name"));
 
                 batch.add(route);
                 count++;
@@ -170,12 +169,12 @@ public class GtfsStaticLoader {
                 BOMInputStream.builder().setInputStream(inputStream).get(), StandardCharsets.UTF_8);
              CSVParser parser = new CSVParser(reader, csvFormat)) {
 
-            for (CSVRecord record : parser) {
+            for (CSVRecord csvRecord : parser) {
                 Trip trip = new Trip();
-                trip.setTripId(record.get("trip_id"));
+                trip.setTripId(csvRecord.get("trip_id"));
                 trip.setFeedType(feedType);
-                trip.setRouteId(getOptionalField(record, "route_id"));
-                trip.setServiceId(getOptionalField(record, "service_id"));
+                trip.setRouteId(getOptionalField(csvRecord, "route_id"));
+                trip.setServiceId(getOptionalField(csvRecord, "service_id"));
 
                 batch.add(trip);
                 count++;
@@ -202,14 +201,14 @@ public class GtfsStaticLoader {
                 BOMInputStream.builder().setInputStream(inputStream).get(), StandardCharsets.UTF_8);
              CSVParser parser = new CSVParser(reader, csvFormat)) {
 
-            for (CSVRecord record : parser) {
+            for (CSVRecord csvRecord : parser) {
                 StopTime stopTime = new StopTime();
-                stopTime.setTripId(record.get("trip_id"));
-                stopTime.setStopSequence(parseIntOrNull(record.get("stop_sequence")));
+                stopTime.setTripId(csvRecord.get("trip_id"));
+                stopTime.setStopSequence(parseIntOrNull(csvRecord.get("stop_sequence")));
                 stopTime.setFeedType(feedType);
-                stopTime.setStopId(getOptionalField(record, "stop_id"));
-                stopTime.setArrivalTime(getOptionalField(record, "arrival_time"));
-                stopTime.setDepartureTime(getOptionalField(record, "departure_time"));
+                stopTime.setStopId(getOptionalField(csvRecord, "stop_id"));
+                stopTime.setArrivalTime(getOptionalField(csvRecord, "arrival_time"));
+                stopTime.setDepartureTime(getOptionalField(csvRecord, "departure_time"));
 
                 batch.add(stopTime);
                 count++;
@@ -227,10 +226,11 @@ public class GtfsStaticLoader {
         log.info("Loaded {} stop times for feed type {}", count, feedType);
     }
 
-    private String getOptionalField(CSVRecord record, String field) {
+    private String getOptionalField(CSVRecord csvRecord, String field) {
         try {
-            return record.get(field);
-        } catch (IllegalArgumentException e) {
+            return csvRecord.get(field);
+        } catch (IllegalArgumentException _) {
+            // Field doesn't exist in CSV - this is expected for optional fields
             return null;
         }
     }
@@ -241,7 +241,8 @@ public class GtfsStaticLoader {
         }
         try {
             return Integer.parseInt(value);
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException _) {
+            // Invalid number format - treat as null
             return null;
         }
     }
@@ -308,6 +309,4 @@ private void loadServiceCalendarDates(InputStream inputStream, String feedType) 
         }
     }
 }
-
-
 }

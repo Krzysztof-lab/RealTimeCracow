@@ -1,7 +1,12 @@
 package pl.edu.agh.to.realtimecracow.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@Getter
+@NoArgsConstructor
 @Entity
 @Table(name = "service_calendar_date")
 public class ServiceCalendarDate {
@@ -10,31 +15,19 @@ public class ServiceCalendarDate {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Setter
     @Column(name = "feed_type", nullable = false)
     private String feedType;
 
+    @Setter
     @Column(name = "service_id", nullable = false)
     private String serviceId;
 
+    @Setter
     @Column(name = "date", nullable = false)
     private String date;
 
+    @Setter
     @Column(name = "exception_type", nullable = false)
     private int exceptionType;
-
-    public ServiceCalendarDate() {}
-
-    public Long getId() { return id; }
-
-    public String getServiceId() { return serviceId; }
-    public void setServiceId(String serviceId) { this.serviceId = serviceId; }
-
-    public String getDate() { return date; }
-    public void setDate(String date) { this.date = date; }
-
-    public int getExceptionType() { return exceptionType; }
-    public void setExceptionType(int exceptionType) { this.exceptionType = exceptionType; }
-    public String getFeedType() { return feedType; }
-    public void setFeedType(String feedType) { this.feedType = feedType; }
-
 }

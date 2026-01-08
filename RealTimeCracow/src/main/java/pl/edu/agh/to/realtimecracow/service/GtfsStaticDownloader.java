@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import pl.edu.agh.to.realtimecracow.entity.GtfsMetadata;
@@ -14,7 +15,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Service
 public class GtfsStaticDownloader {
@@ -39,13 +42,18 @@ public class GtfsStaticDownloader {
         log.info("Checking for updates: {}", url);
 
         try {
-            HttpHeaders headers = webClient.method(HttpMethod.HEAD)
+            ResponseEntity<Void> response = webClient.method(HttpMethod.HEAD)
                     .uri(url)
                     .retrieve()
                     .toBodilessEntity()
-                    .block()
-                    .getHeaders();
+                    .block();
 
+            if (response == null) {
+                log.warn("Received null response for URL: {}", url);
+                return Optional.empty();
+            }
+
+            HttpHeaders headers = response.getHeaders();
             String etag = headers.getETag();
             String lastModified = headers.getFirst(HttpHeaders.LAST_MODIFIED);
             long contentLength = headers.getContentLength();
@@ -100,15 +108,17 @@ public class GtfsStaticDownloader {
     public void cleanupTempFiles(Path tempDir) {
         try {
             if (tempDir != null && Files.exists(tempDir)) {
-                Files.walk(tempDir)
-                        .sorted((a, b) -> -a.compareTo(b))
-                        .forEach(path -> {
-                            try {
-                                Files.deleteIfExists(path);
-                            } catch (IOException e) {
-                                log.warn("Failed to delete temp file: {}", path);
-                            }
-                        });
+                try (Stream<Path> pathStream = Files.walk(tempDir)) {
+                    pathStream
+                            .sorted(Comparator.reverseOrder())
+                            .forEach(path -> {
+                                try {
+                                    Files.deleteIfExists(path);
+                                } catch (IOException _) {
+                                    log.warn("Failed to delete temp file: {}", path);
+                                }
+                            });
+                }
             }
         } catch (IOException e) {
             log.warn("Failed to cleanup temp directory: {}", e.getMessage());

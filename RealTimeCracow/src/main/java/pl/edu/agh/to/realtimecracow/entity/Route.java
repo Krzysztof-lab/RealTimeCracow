@@ -29,6 +29,7 @@ public class Route {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    @SuppressWarnings("java:S1700") // JPA @IdClass requires field names to match entity
     public static class RouteId implements Serializable {
         private String routeId;
         private String feedType;

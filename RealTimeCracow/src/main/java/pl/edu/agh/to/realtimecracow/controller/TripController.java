@@ -4,8 +4,6 @@ package pl.edu.agh.to.realtimecracow.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestParam;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,7 +36,7 @@ public class TripController {
             @RequestParam String to,
             @RequestParam(required = false) String at,
             @RequestParam String feedType
-    ) throws IOException {
+    ) {
         LocalDateTime dateTime = (at == null) ? LocalDateTime.now() : LocalDateTime.parse(at);
 
         return tripService.getNextDirectDeparture(feedType, from, to, dateTime)
