@@ -14,14 +14,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @SpringBootTest
 @ActiveProfiles("test")
 @DisplayName("TripTest")
-public class TripTest {
+class TripTest {
 
 
     @Autowired
     private TripRepository tripRepository;
 
     @Test
-    public void shouldSaveAndLoadByCompositeId() {
+    void shouldSaveAndLoadByCompositeId() {
         tripRepository.save( new Trip("1","A","2","3"));
 
         Trip.TripId id = new Trip.TripId("1", "A");

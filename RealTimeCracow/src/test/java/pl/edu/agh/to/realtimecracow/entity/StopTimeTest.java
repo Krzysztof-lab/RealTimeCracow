@@ -12,14 +12,14 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @ActiveProfiles("test")
 @DisplayName("StopTimeTest")
-public class StopTimeTest
+class StopTimeTest
 {
 
     @Autowired
     private StopTimeRepository stopTimeRepository;
 
     @Test
-    public void shouldSaveAndLoadByCompositeId() {
+    void shouldSaveAndLoadByCompositeId() {
         StopTime st = new StopTime(
                 "20",
                 1,

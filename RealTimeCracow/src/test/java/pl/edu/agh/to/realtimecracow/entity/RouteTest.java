@@ -14,14 +14,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @SpringBootTest
 @ActiveProfiles("test")
 @DisplayName("RouteTest")
-public class RouteTest {
+class RouteTest {
 
 
     @Autowired
     private RouteRepository routeRepository;
 
     @Test
-    public void shouldSaveAndLoadByCompositeId() {
+    void shouldSaveAndLoadByCompositeId() {
         Route r  = new Route("1","M","102" );
         routeRepository.save(r);
 

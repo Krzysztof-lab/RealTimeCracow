@@ -19,19 +19,17 @@ public class GtfsRefreshScheduler {
     private final GtfsStaticDownloader downloader;
     private final GtfsStaticLoader loader;
     private final GtfsDataService dataService;
-    private final GtfsParser gtfsParser;
 
     @Value("${gtfs.refresh.on-startup:true}")
     private boolean refreshOnStartup;
 
     public GtfsRefreshScheduler(GtfsStaticDownloader downloader,
                                  GtfsStaticLoader loader,
-                                 GtfsDataService dataService,
-                                 GtfsParser gtfsParser) {
+                                 GtfsDataService dataService
+                                 ) {
         this.downloader = downloader;
         this.loader = loader;
         this.dataService = dataService;
-        this.gtfsParser = gtfsParser;
     }
 
     @PostConstruct

@@ -25,6 +25,7 @@ public class TripService {
     private final GtfsClient gtfsClient;
     private final GtfsDataService gtfsDataService;
     private final GtfsParser gtfsParser;
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
 
 
     public TripService(GtfsClient gtfsClient,
@@ -107,7 +108,6 @@ public class TripService {
             tripId = tripId.replaceFirst("^block", "")
                     .replaceFirst("_service_1$", "");
         }
-        //System.out.println("Looking for Trip ID: " + tripId);
         for (GtfsRealtime.FeedEntity entity : feed.getEntityList()) {
             if (!entity.hasTripUpdate()) continue;
 
@@ -125,7 +125,7 @@ public class TripService {
                     long realtimeTimestamp = stopTimeUpdate.getDeparture().getTime();
                     return Instant.ofEpochSecond(realtimeTimestamp)
                             .atZone(ZoneId.systemDefault())
-                            .format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+                            .format(TIME_FORMATTER);
                 }
             }
         }
@@ -140,12 +140,12 @@ public class TripService {
                 long departureTimestamp = stopTimeUpdate.getDeparture().getTime();
                 String formattedDepartureTime = Instant.ofEpochSecond(departureTimestamp)
                         .atZone(ZoneId.systemDefault())
-                        .format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+                        .format(TIME_FORMATTER);
 
                 long arrivalTimestamp = stopTimeUpdate.getArrival().getTime();
                 String formattedArrivalTime = Instant.ofEpochSecond(arrivalTimestamp)
                         .atZone(ZoneId.systemDefault())
-                        .format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+                        .format(TIME_FORMATTER);
 
                 String tripId = extractTripId(entity.getId());
                 String stopId = gtfsDataService.getStopIdForTripAndSequence(tripId, stopTimeUpdate.getStopSequence());

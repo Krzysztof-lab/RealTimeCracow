@@ -10,8 +10,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pl.edu.agh.to.realtimecracow.model.Departure;
 import pl.edu.agh.to.realtimecracow.service.TripService;
-
-import java.io.IOException;
 import java.time.LocalDateTime;
 
 

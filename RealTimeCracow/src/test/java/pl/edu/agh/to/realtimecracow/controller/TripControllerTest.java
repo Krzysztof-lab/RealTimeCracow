@@ -12,12 +12,10 @@ import org.springframework.http.ResponseEntity;
 import pl.edu.agh.to.realtimecracow.model.Departure;
 import pl.edu.agh.to.realtimecracow.service.TripService;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,12 +34,12 @@ class TripControllerTest {
 
         @Test
         @DisplayName("should return departure from service")
-        void shouldReturnDepartureFromService() throws IOException {
+        void shouldReturnDepartureFromService() {
             Departure expected = new Departure("Rynek Główny", "152", "12:30:00");
             String at = "2026-01-09T12:00:00";
             LocalDateTime dt = LocalDateTime.parse(at);
 
-            when(tripService.getNextDirectDeparture(eq("M"), eq("Rynek Główny"), eq("Teatr Bagatela"), eq(dt)))
+            when(tripService.getNextDirectDeparture("M", "Rynek Główny", "Teatr Bagatela", dt))
                     .thenReturn(Optional.of(expected));
 
 
@@ -60,12 +58,11 @@ class TripControllerTest {
 
         @Test
         @DisplayName("should return 'No data' departure when no data available")
-        void shouldReturnNoDataDeparture() throws IOException {
-            Departure noDataDeparture = new Departure("No data", "-", "-");
+        void shouldReturnNoDataDeparture() {
             String at = "2026-01-09T12:00:00";
             LocalDateTime dt = LocalDateTime.parse(at);
 
-            when(tripService.getNextDirectDeparture(eq("M"), eq("Rynek Główny"), eq("Teatr Bagatela"), eq(dt)))
+            when(tripService.getNextDirectDeparture("M", "Rynek Główny", "Teatr Bagatela",dt))
                     .thenReturn(Optional.empty());
 
             ResponseEntity<Departure> response =
@@ -77,12 +74,12 @@ class TripControllerTest {
 
         @Test
         @DisplayName("should handle Polish characters in stop name")
-        void shouldHandlePolishCharacters() throws IOException {
+        void shouldHandlePolishCharacters() {
             Departure departure = new Departure("Plac Wszystkich Świętych", "M1", "08:15:00");
             String at = "2026-01-09T08:00:00";
             LocalDateTime dt = LocalDateTime.parse(at);
 
-            when(tripService.getNextDirectDeparture(eq("M"), eq("Plac Wszystkich Świętych"), eq("Teatr Bagatela"), eq(dt)))
+            when(tripService.getNextDirectDeparture("M", "Plac Wszystkich Świętych", "Teatr Bagatela", dt))
                     .thenReturn(Optional.of(departure));
 
             ResponseEntity<Departure> response =
@@ -98,10 +95,10 @@ class TripControllerTest {
 
         @Test
         @DisplayName("should propagate IOException from service")
-        void shouldPropagateIOExceptionFromService() throws IOException {
+        void shouldPropagateIOExceptionFromService() {
             String at = "2026-01-09T12:00:00";
             LocalDateTime dt = LocalDateTime.parse(at);
-            when(tripService.getNextDirectDeparture(eq("M"), eq("A"), eq("B"), eq(dt)))
+            when(tripService.getNextDirectDeparture("M", "A", "B", dt))
                     .thenThrow(new RuntimeException("Connection failed"));
 
             assertThrows(RuntimeException.class,
@@ -110,12 +107,12 @@ class TripControllerTest {
 
         @Test
         @DisplayName("should handle different line number formats")
-        void shouldHandleDifferentLineNumberFormats() throws IOException {
+        void shouldHandleDifferentLineNumberFormats() {
             Departure expected = new Departure("Teatr Bagatela", "1", "14:20:00");
             String at = "2026-01-09T14:00:00";
             LocalDateTime dt = LocalDateTime.parse(at);
 
-            when(tripService.getNextDirectDeparture(eq("M"), eq("Teatr Bagatela"), eq("Rynek Główny"), eq(dt)))
+            when(tripService.getNextDirectDeparture("M", "Teatr Bagatela", "Rynek Główny", dt))
                     .thenReturn(Optional.of(expected));
 
             ResponseEntity<Departure> response =
