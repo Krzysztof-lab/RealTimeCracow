@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 @DisplayName("RealTimeCracow Integration Tests")
 class RealTimeCracowIntegrationTest {
 
+
     @Autowired
     private TripController tripController;
 
@@ -70,10 +71,9 @@ class RealTimeCracowIntegrationTest {
 
             when(gtfsClient.getTripUpdatesFeed()).thenReturn(feedMessage);
 
-            Departure result = tripController.getRandomDeparture();
-
-            assertNotNull(result);
-            assertNotNull(result.departureTime());
+            var response = tripController.getNextDirect("Rynek Główny", "Teatr Bagatela", "2026-01-09T12:00:00", "M");
+            assertEquals(org.springframework.http.HttpStatus.OK, response.getStatusCode());
+            assertNotNull(response.getBody());
         }
 
         @Test
@@ -87,12 +87,9 @@ class RealTimeCracowIntegrationTest {
 
             when(gtfsClient.getTripUpdatesFeed()).thenReturn(emptyFeed);
 
-            Departure result = tripController.getRandomDeparture();
-
-            assertNotNull(result);
-            assertEquals("No data", result.stopName());
-            assertEquals("-", result.lineNumber());
-            assertEquals("-", result.departureTime());
+            var response = tripController.getNextDirect("X", "Y", "2026-01-09T12:00:00", "M");
+            assertEquals(org.springframework.http.HttpStatus.NOT_FOUND, response.getStatusCode());
+            assertNull(response.getBody());
         }
 
         @Test
@@ -114,10 +111,10 @@ class RealTimeCracowIntegrationTest {
 
             when(gtfsClient.getTripUpdatesFeed()).thenReturn(feedMessage);
 
-            Departure result = tripController.getRandomDeparture();
+            var response = tripController.getNextDirect("X", "Y", "2026-01-09T12:00:00", "M");
+            assertEquals(org.springframework.http.HttpStatus.NOT_FOUND, response.getStatusCode());
+            assertNull(response.getBody());
 
-            assertNotNull(result);
-            assertEquals("No data", result.stopName());
         }
 
         @Test
