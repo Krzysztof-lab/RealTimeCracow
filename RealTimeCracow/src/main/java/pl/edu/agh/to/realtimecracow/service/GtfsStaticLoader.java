@@ -39,6 +39,19 @@ public class GtfsStaticLoader {
     private final ServiceCalendarDateRepository serviceCalendarDateRepository;
     private final GtfsFileNamesConfig fileNamesConfig;
 
+    // GTFS field names
+    private static final String FIELD_SERVICE_ID = "service_id";
+    private static final String FIELD_STOP_ID = "stop_id";
+    private static final String FIELD_STOP_NAME = "stop_name";
+    private static final String FIELD_ROUTE_ID = "route_id";
+    private static final String FIELD_ROUTE_SHORT_NAME = "route_short_name";
+    private static final String FIELD_TRIP_ID = "trip_id";
+    private static final String FIELD_STOP_SEQUENCE = "stop_sequence";
+    private static final String FIELD_ARRIVAL_TIME = "arrival_time";
+    private static final String FIELD_DEPARTURE_TIME = "departure_time";
+    private static final String FIELD_EXCEPTION_TYPE = "exception_type";
+    private static final String FIELD_DATE = "date";
+
 
     private final CSVFormat csvFormat = CSVFormat.Builder.create()
             .setHeader()
@@ -103,9 +116,9 @@ public class GtfsStaticLoader {
 
             for (CSVRecord csvRecord : parser) {
                 Stop stop = new Stop();
-                stop.setStopId(csvRecord.get("stop_id"));
+                stop.setStopId(csvRecord.get(FIELD_STOP_ID));
                 stop.setFeedType(feedType);
-                stop.setStopName(getOptionalField(csvRecord, "stop_name"));
+                stop.setStopName(getOptionalField(csvRecord, FIELD_STOP_NAME));
                 batch.add(stop);
                 count++;
 
@@ -133,9 +146,9 @@ public class GtfsStaticLoader {
 
             for (CSVRecord csvRecord : parser) {
                 Route route = new Route();
-                route.setRouteId(csvRecord.get("route_id"));
+                route.setRouteId(csvRecord.get(FIELD_ROUTE_ID));
                 route.setFeedType(feedType);
-                route.setRouteShortName(getOptionalField(csvRecord, "route_short_name"));
+                route.setRouteShortName(getOptionalField(csvRecord, FIELD_ROUTE_SHORT_NAME));
 
                 batch.add(route);
                 count++;
@@ -164,10 +177,10 @@ public class GtfsStaticLoader {
 
             for (CSVRecord csvRecord : parser) {
                 Trip trip = new Trip();
-                trip.setTripId(csvRecord.get("trip_id"));
+                trip.setTripId(csvRecord.get(FIELD_TRIP_ID));
                 trip.setFeedType(feedType);
-                trip.setRouteId(getOptionalField(csvRecord, "route_id"));
-                trip.setServiceId(getOptionalField(csvRecord, "service_id"));
+                trip.setRouteId(getOptionalField(csvRecord, FIELD_ROUTE_ID));
+                trip.setServiceId(getOptionalField(csvRecord, FIELD_SERVICE_ID));
 
                 batch.add(trip);
                 count++;
@@ -196,12 +209,12 @@ public class GtfsStaticLoader {
 
             for (CSVRecord csvRecord : parser) {
                 StopTime stopTime = new StopTime();
-                stopTime.setTripId(csvRecord.get("trip_id"));
-                stopTime.setStopSequence(parseIntOrNull(csvRecord.get("stop_sequence")));
+                stopTime.setTripId(csvRecord.get(FIELD_TRIP_ID));
+                stopTime.setStopSequence(parseIntOrNull(csvRecord.get(FIELD_STOP_SEQUENCE)));
                 stopTime.setFeedType(feedType);
-                stopTime.setStopId(getOptionalField(csvRecord, "stop_id"));
-                stopTime.setArrivalTime(getOptionalField(csvRecord, "arrival_time"));
-                stopTime.setDepartureTime(getOptionalField(csvRecord, "departure_time"));
+                stopTime.setStopId(getOptionalField(csvRecord, FIELD_STOP_ID));
+                stopTime.setArrivalTime(getOptionalField(csvRecord, FIELD_ARRIVAL_TIME));
+                stopTime.setDepartureTime(getOptionalField(csvRecord, FIELD_DEPARTURE_TIME));
 
                 batch.add(stopTime);
                 count++;
@@ -250,7 +263,7 @@ private void loadServiceCalendar(InputStream inputStream, String feedType) throw
         for (CSVRecord r : parser) {
             ServiceCalendar c = new ServiceCalendar();
             c.setFeedType(feedType);
-            c.setServiceId(r.get("service_id"));
+            c.setServiceId(r.get(FIELD_SERVICE_ID));
             c.setMonday(Integer.parseInt(r.get("monday")));
             c.setTuesday(Integer.parseInt(r.get("tuesday")));
             c.setWednesday(Integer.parseInt(r.get("wednesday")));
@@ -285,18 +298,16 @@ private void loadServiceCalendarDates(InputStream inputStream, String feedType) 
         for (CSVRecord r : parser) {
             ServiceCalendarDate d = new ServiceCalendarDate();
             d.setFeedType(feedType);
-            d.setServiceId(r.get("service_id"));
-            d.setDate(r.get("date"));
-            d.setExceptionType(Integer.parseInt(r.get("exception_type")));
+            d.setServiceId(r.get(FIELD_SERVICE_ID));
+            d.setDate(r.get(FIELD_DATE));
+            d.setExceptionType(Integer.parseInt(r.get(FIELD_EXCEPTION_TYPE)));
 
             batch.add(d);
-
             if (batch.size() >= BATCH_SIZE) {
                 serviceCalendarDateRepository.saveAll(batch);
                 batch.clear();
             }
         }
-
         if (!batch.isEmpty()) {
             serviceCalendarDateRepository.saveAll(batch);
         }

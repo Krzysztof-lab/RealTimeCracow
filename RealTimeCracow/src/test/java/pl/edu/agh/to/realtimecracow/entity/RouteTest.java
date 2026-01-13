@@ -26,7 +26,7 @@ class RouteTest {
         routeRepository.save(r);
 
         Route.RouteId id = new Route.RouteId("1", "M");
-       Route loaded = routeRepository.findById(id).orElseThrow();
+        Route loaded = routeRepository.findById(id).orElseThrow();
 
         assertEquals("102", loaded.getRouteShortName());
         assertEquals("1", loaded.getRouteId());

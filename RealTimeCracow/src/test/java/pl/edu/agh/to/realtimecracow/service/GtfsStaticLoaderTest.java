@@ -1,5 +1,6 @@
 package pl.edu.agh.to.realtimecracow.service;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import pl.edu.agh.to.realtimecracow.config.GtfsFileNamesConfig;
 import pl.edu.agh.to.realtimecracow.entity.*;
 import pl.edu.agh.to.realtimecracow.repository.*;
 
@@ -47,6 +49,8 @@ class GtfsStaticLoaderTest {
     @Mock
     private ServiceCalendarDateRepository serviceCalendarDateRepository;
 
+    private GtfsFileNamesConfig fileNamesConfig;
+
     @InjectMocks
     private GtfsStaticLoader loader;
 
@@ -64,6 +68,28 @@ class GtfsStaticLoaderTest {
 
     @TempDir
     Path tempDir;
+
+    @BeforeEach
+    void setUp() {
+        fileNamesConfig = new GtfsFileNamesConfig();
+        fileNamesConfig.setStops("stops.txt");
+        fileNamesConfig.setRoutes("routes.txt");
+        fileNamesConfig.setTrips("trips.txt");
+        fileNamesConfig.setStopTimes("stop_times.txt");
+        fileNamesConfig.setCalendar("calendar.txt");
+        fileNamesConfig.setCalendarDates("calendar_dates.txt");
+
+        loader = new GtfsStaticLoader(
+                stopRepository,
+                routeRepository,
+                tripRepository,
+                stopTimeRepository,
+                serviceCalendarRepository,
+                serviceCalendarDateRepository,
+                fileNamesConfig
+        );
+    }
+
 
     @Nested
     @DisplayName("loadFromZip()")
