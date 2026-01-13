@@ -1,5 +1,6 @@
 package pl.edu.agh.to.realtimecracow.service;
 
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.csv.CSVFormat;
@@ -10,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import pl.edu.agh.to.realtimecracow.config.GtfsFileNamesConfig;
 import pl.edu.agh.to.realtimecracow.entity.*;
 import pl.edu.agh.to.realtimecracow.repository.*;
 
@@ -24,6 +26,7 @@ import java.util.Enumeration;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class GtfsStaticLoader {
     private static final Logger log = LoggerFactory.getLogger(GtfsStaticLoader.class);
     private static final int BATCH_SIZE = 1000;
@@ -34,6 +37,8 @@ public class GtfsStaticLoader {
     private final StopTimeRepository stopTimeRepository;
     private final ServiceCalendarRepository serviceCalendarRepository;
     private final ServiceCalendarDateRepository serviceCalendarDateRepository;
+    private final GtfsFileNamesConfig fileNamesConfig;
+
 
     private final CSVFormat csvFormat = CSVFormat.Builder.create()
             .setHeader()
@@ -41,19 +46,6 @@ public class GtfsStaticLoader {
             .setIgnoreSurroundingSpaces(true)
             .setTrim(true)
             .build();
-
-    public GtfsStaticLoader(StopRepository stopRepository,
-                            RouteRepository routeRepository,
-                            TripRepository tripRepository,
-                            StopTimeRepository stopTimeRepository, ServiceCalendarRepository serviceCalendarRepository,
-                            ServiceCalendarDateRepository serviceCalendarDateRepository) {
-        this.stopRepository = stopRepository;
-        this.routeRepository = routeRepository;
-        this.tripRepository = tripRepository;
-        this.stopTimeRepository = stopTimeRepository;
-        this.serviceCalendarRepository = serviceCalendarRepository;
-        this.serviceCalendarDateRepository = serviceCalendarDateRepository;
-    }
 
 
     @Transactional
@@ -68,19 +60,20 @@ public class GtfsStaticLoader {
                 ZipArchiveEntry entry = entries.nextElement();
                 String name = entry.getName();
 
-                if (name.endsWith("stops.txt")) {
-                    loadStops(zipFile.getInputStream(entry), feedType);
-                } else if (name.endsWith("routes.txt")) {
-                    loadRoutes(zipFile.getInputStream(entry), feedType);
-                } else if (name.endsWith("trips.txt")) {
-                    loadTrips(zipFile.getInputStream(entry), feedType);
-                } else if (name.endsWith("stop_times.txt")) {
-                    loadStopTimes(zipFile.getInputStream(entry), feedType);
-                }
-                else if (name.endsWith("calendar.txt")) {
-                    loadServiceCalendar(zipFile.getInputStream(entry), feedType);
-                } else if (name.endsWith("calendar_dates.txt")) {
-                    loadServiceCalendarDates(zipFile.getInputStream(entry), feedType);
+                switch (name) {
+                    case String n when n.endsWith(fileNamesConfig.getStops()) ->
+                            loadStops(zipFile.getInputStream(entry), feedType);
+                    case String n when n.endsWith(fileNamesConfig.getRoutes()) ->
+                            loadRoutes(zipFile.getInputStream(entry), feedType);
+                    case String n when n.endsWith(fileNamesConfig.getTrips()) ->
+                            loadTrips(zipFile.getInputStream(entry), feedType);
+                    case String n when n.endsWith(fileNamesConfig.getStopTimes()) ->
+                            loadStopTimes(zipFile.getInputStream(entry), feedType);
+                    case String n when n.endsWith(fileNamesConfig.getCalendar()) ->
+                            loadServiceCalendar(zipFile.getInputStream(entry), feedType);
+                    case String n when n.endsWith(fileNamesConfig.getCalendarDates()) ->
+                            loadServiceCalendarDates(zipFile.getInputStream(entry), feedType);
+                    default -> { /* Ignore other files in the GTFS archive */ }
                 }
             }
         }

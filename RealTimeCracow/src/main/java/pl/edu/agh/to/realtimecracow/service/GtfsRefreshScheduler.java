@@ -67,8 +67,8 @@ public class GtfsRefreshScheduler {
                     anyUpdates = true;
                     loadFeedData(result.get());
                 }
-            } catch (Exception e) {
-                log.error("Failed to check/download feed {}: {}", feedType, e.getMessage());
+            } catch (RuntimeException e) {
+                log.error("Failed to process feed {}: {}", feedType, e.getMessage(), e);
             }
         }
 
@@ -98,8 +98,7 @@ public class GtfsRefreshScheduler {
             dataService.refreshCache();
             log.info("GTFS feeds refreshed successfully");
         } else if (!dataService.hasData()) {
-            log.warn("Failed to download GTFS data and database is empty. Using fallback (resources).");
-            log.info("Fallback: GtfsParser has loaded data from resources");
+            log.warn("Failed to download GTFS data and database is empty. Using fallback data from resources.");
         }
     }
 

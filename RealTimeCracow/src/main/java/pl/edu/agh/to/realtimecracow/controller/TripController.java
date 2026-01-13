@@ -28,7 +28,6 @@ public class TripController {
             summary = "Najbliższe bezpośrednie połączenie",
             description = "Najszybsze bezpośrednie połączenie między przystankami z uwzględnieniem kalendarza"
     )
-
     public ResponseEntity<Departure> getNextDirect(
             @RequestParam String from,
             @RequestParam String to,

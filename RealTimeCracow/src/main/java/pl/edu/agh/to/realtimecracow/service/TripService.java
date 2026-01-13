@@ -5,13 +5,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import pl.edu.agh.to.realtimecracow.model.Departure;
-import pl.edu.agh.to.realtimecracow.model.StopInfo;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -24,148 +22,73 @@ public class TripService {
 
     private final GtfsClient gtfsClient;
     private final GtfsDataService gtfsDataService;
-    private final GtfsParser gtfsParser;
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
 
 
     public TripService(GtfsClient gtfsClient,
-                       GtfsDataService gtfsDataService,
-                       GtfsParser gtfsParser) {
+                       GtfsDataService gtfsDataService) {
         this.gtfsClient = gtfsClient;
         this.gtfsDataService = gtfsDataService;
-        this.gtfsParser = gtfsParser;
-    }
-
-    public Departure getRandomDeparture() throws IOException {
-
-        GtfsRealtime.FeedMessage feed = gtfsClient.getTripUpdatesFeed();
-        if (feed.getEntityCount() == 0) {
-            return new Departure("No data", "-", "-");
-        }
-
-        GtfsRealtime.FeedEntity entity = feed.getEntity(0);
-
-        if (gtfsDataService.hasData()) {
-            List<StopInfo> stops = getStopListFromDatabase(entity);
-            if (!stops.isEmpty()) {
-                String lineNumber = getLineNumberFromDatabase(entity.getId());
-                return new Departure(
-                        stops.getFirst().stopName(),
-                        lineNumber != null ? lineNumber : "-",
-                        stops.getFirst().departureTime()
-                );
-            }
-        }
-
-        log.debug("Using GtfsParser fallback for entity {}", entity.getId());
-        List<StopInfo> stops = gtfsParser.getStopListForEntity(entity);
-        if (stops.isEmpty()) {
-            return new Departure("No data", "-", "-");
-        }
-
-        return new Departure(
-                stops.getFirst().stopName(),
-                gtfsParser.getLineNumber(entity.getId()),
-                stops.getFirst().departureTime()
-        );
     }
 
     public Optional<Departure> getNextDirectDeparture(String feedType, String fromStopName, String toStopName, LocalDateTime at) {
 
         List<String> fromStopIds = gtfsDataService.getStopIdsByStopName(fromStopName);
         List<String> toStopIds = gtfsDataService.getStopIdsByStopName(toStopName);
-        if (fromStopIds.isEmpty() || toStopIds.isEmpty()) {
-            return Optional.empty();
-        }
-        Set<String> activeServiceIds = gtfsDataService.getActiveServiceIds(feedType, at.toLocalDate());
-        if (activeServiceIds.isEmpty()) {
-            return Optional.empty();
-        }
 
-        var best = gtfsDataService.findBestDirectTrip(feedType, fromStopIds, toStopIds, at, activeServiceIds);
-        if (best == null) {
-            return Optional.empty();
-        }
-        String actualDepartureTime;
-        try {
-            String realtimeDeparture = getRealtimeDepartureTime(best.tripId(), fromStopIds);
-            actualDepartureTime = (realtimeDeparture != null) ? realtimeDeparture : best.departureTime();
-        } catch (IOException e) {
-            log.warn("Failed to get realtime data, using scheduled time", e);
-            actualDepartureTime = best.departureTime();
-        }
+        return Optional.of(fromStopIds)
+                .filter(ids -> !ids.isEmpty() && !toStopIds.isEmpty())
+                .flatMap(_ -> {
+                    Set<String> activeServiceIds = gtfsDataService.getActiveServiceIds(feedType, at.toLocalDate());
+                    return activeServiceIds.isEmpty()
+                            ? Optional.empty()
+                            : Optional.ofNullable(gtfsDataService.findBestDirectTrip(feedType, fromStopIds, toStopIds, at, activeServiceIds));
+                })
+                .map(best -> {
+                    String actualDepartureTime = getDepartureTimeWithRealtime(best.tripId(), fromStopIds, best.departureTime());
+                    String routeShortName = gtfsDataService.getRouteShortName(best.routeId());
+                    String lineNumber = (routeShortName != null) ? routeShortName : "-";
 
-        String routeShortName = gtfsDataService.getRouteShortName(best.routeId());
-        String lineNumber = (routeShortName != null) ? routeShortName : "-";
-
-        return Optional.of(new Departure(fromStopName, lineNumber, actualDepartureTime));
+                    return new Departure(fromStopName, lineNumber, actualDepartureTime);
+                });
     }
 
+    private String getDepartureTimeWithRealtime(String tripId, List<String> fromStopIds, String scheduledTime) {
+        try {
+            String realtimeDeparture = getRealtimeDepartureTime(tripId, fromStopIds);
+            return (realtimeDeparture != null) ? realtimeDeparture : scheduledTime;
+        } catch (IOException e) {
+            log.warn("Failed to get realtime data, using scheduled time", e);
+            return scheduledTime;
+        }
+    }
 
     private String getRealtimeDepartureTime(String tripId, List<String> stopIds) throws IOException {
         GtfsRealtime.FeedMessage feed = gtfsClient.getTripUpdatesFeed();
-        if(tripId.startsWith("block")) {
-            tripId = tripId.replaceFirst("^block", "")
-                    .replaceFirst("_service_1$", "");
-        }
-        for (GtfsRealtime.FeedEntity entity : feed.getEntityList()) {
-            if (!entity.hasTripUpdate()) continue;
+        String normalizedTripId = tripId.startsWith("block")
+                ? tripId.replaceFirst("^block", "").replaceFirst("_service_1$", "")
+                : tripId;
 
-            GtfsRealtime.TripUpdate tripUpdate = entity.getTripUpdate();
-            String entityTripId = extractTripId(entity.getId());
-
-            if (!entityTripId.equals(tripId)) continue;
-            for (GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate : tripUpdate.getStopTimeUpdateList()) {
-                String stopId = gtfsDataService.getStopIdForTripAndSequence(
-                        entityTripId,
-                        stopTimeUpdate.getStopSequence()
-                );
-
-                if (stopIds.contains(stopId) && stopTimeUpdate.hasDeparture()) {
+        return feed.getEntityList().stream()
+                .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
+                .filter(entity -> extractTripId(entity.getId()).equals(normalizedTripId))
+                .flatMap(entity -> entity.getTripUpdate().getStopTimeUpdateList().stream())
+                .filter(GtfsRealtime.TripUpdate.StopTimeUpdate::hasDeparture)
+                .filter(stopTimeUpdate -> {
+                    String stopId = gtfsDataService.getStopIdForTripAndSequence(
+                            normalizedTripId,
+                            stopTimeUpdate.getStopSequence()
+                    );
+                    return stopIds.contains(stopId);
+                })
+                .findFirst()
+                .map(stopTimeUpdate -> {
                     long realtimeTimestamp = stopTimeUpdate.getDeparture().getTime();
                     return Instant.ofEpochSecond(realtimeTimestamp)
                             .atZone(ZoneId.systemDefault())
                             .format(TIME_FORMATTER);
-                }
-            }
-        }
-        return null;
-    }
-
-    private List<StopInfo> getStopListFromDatabase(GtfsRealtime.FeedEntity entity) {
-        List<StopInfo> stops = new ArrayList<>();
-
-        for (GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate : entity.getTripUpdate().getStopTimeUpdateList()) {
-            if (stopTimeUpdate.hasDeparture()) {
-                long departureTimestamp = stopTimeUpdate.getDeparture().getTime();
-                String formattedDepartureTime = Instant.ofEpochSecond(departureTimestamp)
-                        .atZone(ZoneId.systemDefault())
-                        .format(TIME_FORMATTER);
-
-                long arrivalTimestamp = stopTimeUpdate.getArrival().getTime();
-                String formattedArrivalTime = Instant.ofEpochSecond(arrivalTimestamp)
-                        .atZone(ZoneId.systemDefault())
-                        .format(TIME_FORMATTER);
-
-                String tripId = extractTripId(entity.getId());
-                String stopId = gtfsDataService.getStopIdForTripAndSequence(tripId, stopTimeUpdate.getStopSequence());
-                String stopName = stopId != null ? gtfsDataService.getStopName(stopId) : null;
-
-                stops.add(new StopInfo(
-                        stopId,
-                        stopName,
-                        formattedArrivalTime,
-                        formattedDepartureTime,
-                        stopTimeUpdate.getStopSequence()
-                ));
-            }
-        }
-        return stops;
-    }
-
-    private String getLineNumberFromDatabase(String entityId) {
-        String tripId = extractTripId(entityId);
-        return gtfsDataService.getRouteIdForTrip(tripId);
+                })
+                .orElse(null);
     }
 
     private String extractTripId(String entityId) {
