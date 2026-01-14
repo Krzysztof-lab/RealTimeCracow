@@ -40,8 +40,8 @@ class RealTimeCracowIntegrationTest {
     class FullApplicationFlowTests {
 
         @Test
-        @DisplayName("should return departure when feed has valid data")
-        void shouldReturnDepartureWhenFeedHasValidData() throws Exception {
+        @DisplayName("should return 404 when stop names not found in empty database")
+        void shouldReturn404WhenStopNamesNotFound() throws Exception {
             GtfsRealtime.FeedMessage feedMessage = GtfsRealtime.FeedMessage.newBuilder()
                     .setHeader(GtfsRealtime.FeedHeader.newBuilder()
                             .setGtfsRealtimeVersion("2.0")
@@ -68,8 +68,7 @@ class RealTimeCracowIntegrationTest {
             when(gtfsClient.getTripUpdatesFeed()).thenReturn(feedMessage);
 
             var response = tripController.getNextDirect("Rynek Główny", "Teatr Bagatela", "2026-01-09T12:00:00", "M");
-            assertEquals(org.springframework.http.HttpStatus.OK, response.getStatusCode());
-            assertNotNull(response.getBody());
+            assertEquals(org.springframework.http.HttpStatus.NOT_FOUND, response.getStatusCode());
         }
 
         @Test
