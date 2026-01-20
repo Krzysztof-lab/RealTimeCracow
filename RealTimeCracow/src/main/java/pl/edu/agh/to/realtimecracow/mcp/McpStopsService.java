@@ -1,17 +1,18 @@
 package pl.edu.agh.to.realtimecracow.mcp;
 
-import org.springframework.stereotype.Component;
+
+import org.springframework.stereotype.Service;
 import pl.edu.agh.to.realtimecracow.mcp.dto.StopDto;
 import pl.edu.agh.to.realtimecracow.repository.StopRepository;
 
 import java.util.List;
 
-@Component
-public class McpStopsTool {
+@Service
+public class McpStopsService {
 
     private final StopRepository stopRepository;
 
-    public McpStopsTool(StopRepository stopRepository) {
+    public McpStopsService(StopRepository stopRepository) {
         this.stopRepository = stopRepository;
     }
 
@@ -20,8 +21,8 @@ public class McpStopsTool {
                 .stream()
                 .map(s -> new StopDto(
                         s.getStopId(),
-                        s.getFeedType(),
-                        s.getStopName()
+                        s.getStopName(),
+                        s.getFeedType()
                 ))
                 .toList();
     }

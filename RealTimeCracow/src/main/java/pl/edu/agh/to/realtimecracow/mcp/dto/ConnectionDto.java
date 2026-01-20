@@ -1,11 +1,11 @@
 package pl.edu.agh.to.realtimecracow.mcp.dto;
 
-
-
+//
 public record ConnectionDto(
-                            String routeId,
-                            String plannedDeparture,
-                            String realtimeDeparture,
-                            Integer delaySeconds,
-                            String plannedArrival) {
+        String tripId,
+        String routeId,
+        String routeShortName,
+        String departureTimePlanned,
+        String arrivalTimePlanned,
+        Integer delaySeconds) {
 }

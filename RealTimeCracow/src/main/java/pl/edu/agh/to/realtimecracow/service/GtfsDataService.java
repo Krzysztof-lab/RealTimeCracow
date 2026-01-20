@@ -4,6 +4,7 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import pl.edu.agh.to.realtimecracow.repository.NextDeparturesRepository;
 import pl.edu.agh.to.realtimecracow.repository.*;
 
 import java.util.*;
@@ -23,6 +24,8 @@ public class GtfsDataService {
 
     private final ServiceCalendarService serviceCalendarService;
     private final DirectConnectionRepository directConnectionRepository;
+    private final NextDeparturesRepository nextDeparturesRepository;
+
 
     // In-memory cache for fast lookups
     private final Map<String, String> stopIdToName = new ConcurrentHashMap<>();
@@ -35,13 +38,14 @@ public class GtfsDataService {
                            RouteRepository routeRepository,
                            TripRepository tripRepository,
                            StopTimeRepository stopTimeRepository,ServiceCalendarService serviceCalendarService,
-                           DirectConnectionRepository directConnectionRepository ) {
+                           DirectConnectionRepository directConnectionRepository, NextDeparturesRepository nextDeparturesRepository ) {
         this.stopRepository = stopRepository;
         this.routeRepository = routeRepository;
         this.tripRepository = tripRepository;
         this.stopTimeRepository = stopTimeRepository;
         this.serviceCalendarService = serviceCalendarService;
         this.directConnectionRepository = directConnectionRepository;
+        this.nextDeparturesRepository = nextDeparturesRepository;
     }
 
     @PostConstruct
@@ -124,6 +128,8 @@ public class GtfsDataService {
     public Set<String> getActiveServiceIds(String feedType, LocalDate date) {
         return serviceCalendarService.activeServiceIds(feedType, date);
     }
+
+
     public record DirectTripResult(String tripId, String routeId, String departureTime, String arrivalTime) {}
 
     public DirectTripResult findBestDirectTrip(String feedType, List<String> fromStopIds, List<String> toStopIds,
@@ -135,6 +141,36 @@ public class GtfsDataService {
         if (row == null) return null;
 
         return new DirectTripResult(row.tripId(), row.routeId(), row.departureTime(), row.arrivalTime());
+    }
+
+    public List<DirectTripResult> findTopDirectTrips(
+            String feedType,
+            List<String> fromStopIds,
+            List<String> toStopIds,
+            LocalDateTime at,
+            Set<String> serviceIds,
+            int limit
+    ) {
+        String fromTime = at.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+
+        List<DirectConnectionRepository.DirectTripRow> rows =
+                directConnectionRepository.findTopDirectTrips(feedType, fromStopIds, toStopIds, fromTime, serviceIds, limit);
+
+        return rows.stream()
+                .map(r -> new DirectTripResult(r.tripId(), r.routeId(), r.departureTime(), r.arrivalTime()))
+                .toList();
+    }
+
+    public List<NextDeparturesRepository.DepartureRow> findNextDeparturesRows(
+            String feedType,
+            List<String> stopIds,
+            String line,
+            LocalDateTime at,
+            Set<String> serviceIds,
+            int limit
+    ) {
+        String fromTime = at.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        return nextDeparturesRepository.findNextDepartures(feedType, stopIds, line, fromTime, serviceIds, limit);
     }
 
 }
