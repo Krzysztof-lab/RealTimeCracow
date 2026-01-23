@@ -1,4 +1,3 @@
-
 package pl.edu.agh.to.realtimecracow.service;
 
 import com.google.transit.realtime.GtfsRealtime;
@@ -9,18 +8,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import pl.edu.agh.to.realtimecracow.model.Departure;
-import pl.edu.agh.to.realtimecracow.model.StopInfo;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("TripService")
 class TripServiceTest {
 
@@ -28,222 +29,260 @@ class TripServiceTest {
     private GtfsClient gtfsClient;
 
     @Mock
-    private GtfsParser gtfsParser;
+    private GtfsDataService gtfsDataService;
 
     private TripService tripService;
+
     @BeforeEach
     void setUp() {
-        tripService = new TripService(gtfsClient, gtfsParser);
+        tripService = new TripService(gtfsClient, gtfsDataService);
     }
 
     @Nested
-    @DisplayName("getRandomDeparture()")
-    class GetRandomDepartureTests {
+    @DisplayName("getNextDirectDeparture()")
+    class GetNextDirectDepartureTests {
 
         @Test
-        @DisplayName("should return 'No data' when feed has no entities")
-        void shouldReturnNoDataWhenFeedIsEmpty() throws IOException {
+        @DisplayName("Should return departure with realtime data when available")
+        void shouldReturnDepartureWithRealtimeData() throws IOException {
+            // Given
+            String feedType = "M";
+            String fromStopName = "Rynek Główny";
+            String toStopName = "Teatr Bagatela";
+            LocalDateTime at = LocalDateTime.of(2026, 1, 14, 12, 0);
+
+            List<String> fromStopIds = List.of("stop_4825", "stop_4826");
+            List<String> toStopIds = List.of("stop_1122");
+            Set<String> activeServiceIds = Set.of("service_weekday");
+
+            GtfsDataService.DirectTripResult bestTrip =
+                    new GtfsDataService.DirectTripResult("trip_456", "route_152", "12:30:00", "12:45:00");
+
+            when(gtfsDataService.getStopIdsByStopName(fromStopName)).thenReturn(fromStopIds);
+            when(gtfsDataService.getStopIdsByStopName(toStopName)).thenReturn(toStopIds);
+            when(gtfsDataService.getActiveServiceIds(feedType, at.toLocalDate())).thenReturn(activeServiceIds);
+            when(gtfsDataService.findBestDirectTrip(feedType, fromStopIds, toStopIds, at, activeServiceIds))
+                    .thenReturn(bestTrip);
+            when(gtfsDataService.getRouteShortName("route_152")).thenReturn("152");
+            when(gtfsDataService.getStopIdForTripAndSequence("trip_456", 1)).thenReturn("stop_4825");
+
+            long departureTimestamp = LocalDateTime.of(2026, 1, 14, 12, 33, 0)
+                    .atZone(ZoneId.systemDefault())
+                    .toEpochSecond();
+            GtfsRealtime.FeedMessage realtimeFeed = createRealtimeFeed("trip_456", "stop_4825", 1, departureTimestamp);
+            when(gtfsClient.getTripUpdatesFeed()).thenReturn(realtimeFeed);
+
+            // When
+            Optional<Departure> result = tripService.getNextDirectDeparture(feedType, fromStopName, toStopName, at);
+
+            // Then
+            assertThat(result).isPresent();
+            Departure departure = result.get();
+            assertThat(departure.stopName()).isEqualTo(fromStopName);
+            assertThat(departure.lineNumber()).isEqualTo("152");
+            assertThat(departure.departureTime()).isEqualTo("12:33:00");
+        }
+
+        @Test
+        @DisplayName("Should return departure with scheduled time when realtime unavailable")
+        void shouldReturnDepartureWithScheduledTimeWhenRealtimeUnavailable() throws IOException {
+            // Given
+            String feedType = "M";
+            String fromStopName = "Rynek Główny";
+            String toStopName = "Teatr Bagatela";
+            LocalDateTime at = LocalDateTime.of(2026, 1, 14, 12, 0);
+
+            List<String> fromStopIds = List.of("stop_4825");
+            List<String> toStopIds = List.of("stop_1122");
+            Set<String> activeServiceIds = Set.of("service_weekday");
+
+            GtfsDataService.DirectTripResult bestTrip =
+                    new GtfsDataService.DirectTripResult("trip_456", "route_152", "12:30:00", "12:45:00");
+
+            when(gtfsDataService.getStopIdsByStopName(fromStopName)).thenReturn(fromStopIds);
+            when(gtfsDataService.getStopIdsByStopName(toStopName)).thenReturn(toStopIds);
+            when(gtfsDataService.getActiveServiceIds(feedType, at.toLocalDate())).thenReturn(activeServiceIds);
+            when(gtfsDataService.findBestDirectTrip(feedType, fromStopIds, toStopIds, at, activeServiceIds))
+                    .thenReturn(bestTrip);
+            when(gtfsDataService.getRouteShortName("route_152")).thenReturn("152");
+
             GtfsRealtime.FeedMessage emptyFeed = GtfsRealtime.FeedMessage.newBuilder()
                     .setHeader(GtfsRealtime.FeedHeader.newBuilder()
                             .setGtfsRealtimeVersion("2.0")
+                            .setTimestamp(System.currentTimeMillis() / 1000)
                             .build())
                     .build();
-
             when(gtfsClient.getTripUpdatesFeed()).thenReturn(emptyFeed);
 
-            Departure result = tripService.getRandomDeparture();
+            // When
+            Optional<Departure> result = tripService.getNextDirectDeparture(feedType, fromStopName, toStopName, at);
 
-            assertEquals("No data", result.stopName());
-            assertEquals("-", result.lineNumber());
-            assertEquals("-", result.departureTime());
-            verify(gtfsClient).getTripUpdatesFeed();
-            verify(gtfsParser, never()).getStopListForEntity(any());
+            // Then
+            assertThat(result).isPresent();
+            Departure departure = result.get();
+            assertThat(departure.stopName()).isEqualTo(fromStopName);
+            assertThat(departure.lineNumber()).isEqualTo("152");
+            assertThat(departure.departureTime()).isEqualTo("12:30:00");
         }
 
         @Test
-        @DisplayName("should return 'No data' when stops list is empty")
-        void shouldReturnNoDataWhenStopsListIsEmpty() throws IOException {
-            GtfsRealtime.FeedEntity entity = GtfsRealtime.FeedEntity.newBuilder()
-                    .setId("prefix:test_trip")
-                    .setTripUpdate(GtfsRealtime.TripUpdate.newBuilder()
-                            .setTrip(GtfsRealtime.TripDescriptor.newBuilder()
-                                    .setTripId("test_trip")
-                                    .build())
-                            .build())
-                    .build();
+        @DisplayName("Should return departure with scheduled time when realtime API throws IOException")
+        void shouldReturnScheduledTimeWhenRealtimeThrowsException() throws IOException {
+            // Given
+            String feedType = "M";
+            String fromStopName = "Rynek Główny";
+            String toStopName = "Teatr Bagatela";
+            LocalDateTime at = LocalDateTime.of(2026, 1, 14, 12, 0);
 
-            GtfsRealtime.FeedMessage feed = GtfsRealtime.FeedMessage.newBuilder()
-                    .setHeader(GtfsRealtime.FeedHeader.newBuilder()
-                            .setGtfsRealtimeVersion("2.0")
-                            .build())
-                    .addEntity(entity)
-                    .build();
+            List<String> fromStopIds = List.of("stop_4825");
+            List<String> toStopIds = List.of("stop_1122");
+            Set<String> activeServiceIds = Set.of("service_weekday");
 
-            when(gtfsClient.getTripUpdatesFeed()).thenReturn(feed);
-            when(gtfsParser.getStopListForEntity(entity)).thenReturn(Collections.emptyList());
+            GtfsDataService.DirectTripResult bestTrip =
+                    new GtfsDataService.DirectTripResult("trip_456", "route_152", "12:30:00", "12:45:00");
 
-            Departure result = tripService.getRandomDeparture();
+            when(gtfsDataService.getStopIdsByStopName(fromStopName)).thenReturn(fromStopIds);
+            when(gtfsDataService.getStopIdsByStopName(toStopName)).thenReturn(toStopIds);
+            when(gtfsDataService.getActiveServiceIds(feedType, at.toLocalDate())).thenReturn(activeServiceIds);
+            when(gtfsDataService.findBestDirectTrip(feedType, fromStopIds, toStopIds, at, activeServiceIds))
+                    .thenReturn(bestTrip);
+            when(gtfsDataService.getRouteShortName("route_152")).thenReturn("152");
 
-            assertEquals("No data", result.stopName());
-            assertEquals("-", result.lineNumber());
-            assertEquals("-", result.departureTime());
+            when(gtfsClient.getTripUpdatesFeed()).thenThrow(new com.google.protobuf.InvalidProtocolBufferException("Network error"));
+
+            // When
+            Optional<Departure> result = tripService.getNextDirectDeparture(feedType, fromStopName, toStopName, at);
+
+            // Then
+            assertThat(result).isPresent();
+            Departure departure = result.get();
+            assertThat(departure.departureTime()).isEqualTo("12:30:00");
         }
 
         @Test
-        @DisplayName("should return departure with correct data from first entity")
-        void shouldReturnDepartureFromFirstEntity() throws IOException {
-            GtfsRealtime.FeedEntity entity = GtfsRealtime.FeedEntity.newBuilder()
-                    .setId("prefix:trip123")
-                    .setTripUpdate(GtfsRealtime.TripUpdate.newBuilder()
-                            .setTrip(GtfsRealtime.TripDescriptor.newBuilder()
-                                    .setTripId("trip123")
-                                    .build())
-                            .build())
-                    .build();
+        @DisplayName("Should return empty when from stop not found")
+        void shouldReturnEmptyWhenFromStopNotFound() {
+            // Given
+            String feedType = "M";
+            String fromStopName = "Nieistniejący Przystanek";
+            String toStopName = "Teatr Bagatela";
+            LocalDateTime at = LocalDateTime.of(2026, 1, 14, 12, 0);
 
-            GtfsRealtime.FeedMessage feed = GtfsRealtime.FeedMessage.newBuilder()
-                    .setHeader(GtfsRealtime.FeedHeader.newBuilder()
-                            .setGtfsRealtimeVersion("2.0")
-                            .build())
-                    .addEntity(entity)
-                    .build();
+            when(gtfsDataService.getStopIdsByStopName(fromStopName)).thenReturn(Collections.emptyList());
+            when(gtfsDataService.getStopIdsByStopName(toStopName)).thenReturn(List.of("stop_1122"));
 
-            List<StopInfo> stops = List.of(
-                    new StopInfo("stop1", "Rynek Główny", "12:30:00", "12:31:00", 1),
-                    new StopInfo("stop2", "Plac Wszystkich Świętych", "12:35:00", "12:36:00", 2)
-            );
+            // When
+            Optional<Departure> result = tripService.getNextDirectDeparture(feedType, fromStopName, toStopName, at);
 
-            when(gtfsClient.getTripUpdatesFeed()).thenReturn(feed);
-            when(gtfsParser.getStopListForEntity(entity)).thenReturn(stops);
-            when(gtfsParser.getLineNumber("prefix:trip123")).thenReturn("152");
-
-            Departure result = tripService.getRandomDeparture();
-
-            assertEquals("Rynek Główny", result.stopName());
-            assertEquals("152", result.lineNumber());
-            assertEquals("12:31:00", result.departureTime());
+            // Then
+            assertThat(result).isEmpty();
+            verify(gtfsDataService, never()).getActiveServiceIds(any(), any());
+            verify(gtfsDataService, never()).findBestDirectTrip(any(), any(), any(), any(), any());
         }
 
         @Test
-        @DisplayName("should use first entity when multiple entities exist")
-        void shouldUseFirstEntityWhenMultipleExist() throws IOException {
-            GtfsRealtime.FeedEntity entity1 = GtfsRealtime.FeedEntity.newBuilder()
-                    .setId("prefix:trip1")
-                    .setTripUpdate(GtfsRealtime.TripUpdate.newBuilder()
-                            .setTrip(GtfsRealtime.TripDescriptor.newBuilder()
-                                    .setTripId("trip1")
-                                    .build())
-                            .build())
-                    .build();
+        @DisplayName("Should return empty when to stop not found")
+        void shouldReturnEmptyWhenToStopNotFound() {
+            // Given
+            String feedType = "M";
+            String fromStopName = "Rynek Główny";
+            String toStopName = "Nieistniejący Przystanek";
+            LocalDateTime at = LocalDateTime.of(2026, 1, 14, 12, 0);
 
-            GtfsRealtime.FeedEntity entity2 = GtfsRealtime.FeedEntity.newBuilder()
-                    .setId("prefix:trip2")
-                    .setTripUpdate(GtfsRealtime.TripUpdate.newBuilder()
-                            .setTrip(GtfsRealtime.TripDescriptor.newBuilder()
-                                    .setTripId("trip2")
-                                    .build())
-                            .build())
-                    .build();
+            when(gtfsDataService.getStopIdsByStopName(fromStopName)).thenReturn(List.of("stop_4825"));
+            when(gtfsDataService.getStopIdsByStopName(toStopName)).thenReturn(Collections.emptyList());
 
-            GtfsRealtime.FeedMessage feed = GtfsRealtime.FeedMessage.newBuilder()
-                    .setHeader(GtfsRealtime.FeedHeader.newBuilder()
-                            .setGtfsRealtimeVersion("2.0")
-                            .build())
-                    .addEntity(entity1)
-                    .addEntity(entity2)
-                    .build();
+            // When
+            Optional<Departure> result = tripService.getNextDirectDeparture(feedType, fromStopName, toStopName, at);
 
-            List<StopInfo> stops = List.of(
-                    new StopInfo("stop1", "First Stop", "10:00:00", "10:01:00", 1)
-            );
-
-            when(gtfsClient.getTripUpdatesFeed()).thenReturn(feed);
-            when(gtfsParser.getStopListForEntity(entity1)).thenReturn(stops);
-            when(gtfsParser.getLineNumber("prefix:trip1")).thenReturn("1");
-
-            Departure result = tripService.getRandomDeparture();
-
-            assertEquals("First Stop", result.stopName());
-            assertEquals("1", result.lineNumber());
-            verify(gtfsParser).getStopListForEntity(entity1);
-            verify(gtfsParser, never()).getStopListForEntity(entity2);
+            // Then
+            assertThat(result).isEmpty();
+            verify(gtfsDataService, never()).getActiveServiceIds(any(), any());
         }
 
         @Test
-        @DisplayName("should propagate exception from GtfsClient")
-        void shouldPropagateExceptionFromGtfsClient() throws Exception {
-            when(gtfsClient.getTripUpdatesFeed()).thenThrow(new RuntimeException("Network error"));
+        @DisplayName("Should return empty when no active services")
+        void shouldReturnEmptyWhenNoActiveServices() {
+            // Given
+            String feedType = "M";
+            String fromStopName = "Rynek Główny";
+            String toStopName = "Teatr Bagatela";
+            LocalDateTime at = LocalDateTime.of(2026, 1, 14, 12, 0);
 
-            assertThrows(RuntimeException.class, () -> tripService.getRandomDeparture());
+            List<String> fromStopIds = List.of("stop_4825");
+            List<String> toStopIds = List.of("stop_1122");
+
+            when(gtfsDataService.getStopIdsByStopName(fromStopName)).thenReturn(fromStopIds);
+            when(gtfsDataService.getStopIdsByStopName(toStopName)).thenReturn(toStopIds);
+            when(gtfsDataService.getActiveServiceIds(feedType, at.toLocalDate())).thenReturn(Collections.emptySet());
+
+            // When
+            Optional<Departure> result = tripService.getNextDirectDeparture(feedType, fromStopName, toStopName, at);
+
+            // Then
+            assertThat(result).isEmpty();
+            verify(gtfsDataService, never()).findBestDirectTrip(any(), any(), any(), any(), any());
         }
 
         @Test
-        @DisplayName("should handle null line number")
-        void shouldHandleNullLineNumber() throws IOException {
-            GtfsRealtime.FeedEntity entity = GtfsRealtime.FeedEntity.newBuilder()
-                    .setId("prefix:unknown_trip")
-                    .setTripUpdate(GtfsRealtime.TripUpdate.newBuilder()
-                            .setTrip(GtfsRealtime.TripDescriptor.newBuilder()
-                                    .setTripId("unknown_trip")
-                                    .build())
-                            .build())
-                    .build();
+        @DisplayName("Should return empty when no direct connection found")
+        void shouldReturnEmptyWhenNoDirectConnection() {
+            // Given
+            String feedType = "M";
+            String fromStopName = "Rynek Główny";
+            String toStopName = "Teatr Bagatela";
+            LocalDateTime at = LocalDateTime.of(2026, 1, 14, 12, 0);
 
-            GtfsRealtime.FeedMessage feed = GtfsRealtime.FeedMessage.newBuilder()
-                    .setHeader(GtfsRealtime.FeedHeader.newBuilder()
-                            .setGtfsRealtimeVersion("2.0")
-                            .build())
-                    .addEntity(entity)
-                    .build();
+            List<String> fromStopIds = List.of("stop_4825");
+            List<String> toStopIds = List.of("stop_1122");
+            Set<String> activeServiceIds = Set.of("service_weekday");
 
-            List<StopInfo> stops = List.of(
-                    new StopInfo("stop1", "Some Stop", "10:00:00", "10:01:00", 1)
-            );
+            when(gtfsDataService.getStopIdsByStopName(fromStopName)).thenReturn(fromStopIds);
+            when(gtfsDataService.getStopIdsByStopName(toStopName)).thenReturn(toStopIds);
+            when(gtfsDataService.getActiveServiceIds(feedType, at.toLocalDate())).thenReturn(activeServiceIds);
+            when(gtfsDataService.findBestDirectTrip(feedType, fromStopIds, toStopIds, at, activeServiceIds))
+                    .thenReturn(null);
 
-            when(gtfsClient.getTripUpdatesFeed()).thenReturn(feed);
-            when(gtfsParser.getStopListForEntity(entity)).thenReturn(stops);
-            when(gtfsParser.getLineNumber("prefix:unknown_trip")).thenReturn(null);
+            // When
+            Optional<Departure> result = tripService.getNextDirectDeparture(feedType, fromStopName, toStopName, at);
 
-            Departure result = tripService.getRandomDeparture();
-
-            assertEquals("Some Stop", result.stopName());
-            assertNull(result.lineNumber());
-            assertEquals("10:01:00", result.departureTime());
+            // Then
+            assertThat(result).isEmpty();
         }
+    }
 
-        @Test
-        @DisplayName("should return first stop's data when multiple stops exist")
-        void shouldReturnFirstStopData() throws IOException {
-            GtfsRealtime.FeedEntity entity = GtfsRealtime.FeedEntity.newBuilder()
-                    .setId("prefix:trip1")
-                    .setTripUpdate(GtfsRealtime.TripUpdate.newBuilder()
-                            .setTrip(GtfsRealtime.TripDescriptor.newBuilder()
-                                    .setTripId("trip1")
-                                    .build())
-                            .build())
-                    .build();
+    private GtfsRealtime.FeedMessage createRealtimeFeed(String tripId, String stopId, int stopSequence, long departureTime) {
+        GtfsRealtime.FeedHeader header = GtfsRealtime.FeedHeader.newBuilder()
+                .setGtfsRealtimeVersion("2.0")
+                .setTimestamp(System.currentTimeMillis() / 1000)
+                .build();
 
-            GtfsRealtime.FeedMessage feed = GtfsRealtime.FeedMessage.newBuilder()
-                    .setHeader(GtfsRealtime.FeedHeader.newBuilder()
-                            .setGtfsRealtimeVersion("2.0")
-                            .build())
-                    .addEntity(entity)
-                    .build();
+        GtfsRealtime.TripUpdate.StopTimeEvent departureEvent = GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder()
+                .setTime(departureTime)
+                .build();
 
-            List<StopInfo> stops = List.of(
-                    new StopInfo("stop1", "First Stop", "10:00:00", "10:01:00", 1),
-                    new StopInfo("stop2", "Second Stop", "10:05:00", "10:06:00", 2),
-                    new StopInfo("stop3", "Third Stop", "10:10:00", "10:11:00", 3)
-            );
+        GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate = GtfsRealtime.TripUpdate.StopTimeUpdate.newBuilder()
+                .setStopSequence(stopSequence)
+                .setDeparture(departureEvent)
+                .build();
 
-            when(gtfsClient.getTripUpdatesFeed()).thenReturn(feed);
-            when(gtfsParser.getStopListForEntity(entity)).thenReturn(stops);
-            when(gtfsParser.getLineNumber("prefix:trip1")).thenReturn("A");
+        GtfsRealtime.TripDescriptor tripDescriptor = GtfsRealtime.TripDescriptor.newBuilder()
+                .setTripId(tripId)
+                .build();
 
-            Departure result = tripService.getRandomDeparture();
+        GtfsRealtime.TripUpdate tripUpdate = GtfsRealtime.TripUpdate.newBuilder()
+                .setTrip(tripDescriptor)
+                .addStopTimeUpdate(stopTimeUpdate)
+                .build();
 
-            assertEquals("First Stop", result.stopName());
-            assertEquals("10:01:00", result.departureTime());
-        }
+        GtfsRealtime.FeedEntity entity = GtfsRealtime.FeedEntity.newBuilder()
+                .setId("vehicle" + tripId)
+                .setTripUpdate(tripUpdate)
+                .build();
+
+        return GtfsRealtime.FeedMessage.newBuilder()
+                .setHeader(header)
+                .addEntity(entity)
+                .build();
     }
 }
