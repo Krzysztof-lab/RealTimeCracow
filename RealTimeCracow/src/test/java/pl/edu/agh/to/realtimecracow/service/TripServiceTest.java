@@ -69,7 +69,7 @@ class TripServiceTest {
             long departureTimestamp = LocalDateTime.of(2026, 1, 14, 12, 33, 0)
                     .atZone(ZoneId.systemDefault())
                     .toEpochSecond();
-            GtfsRealtime.FeedMessage realtimeFeed = createRealtimeFeed("trip_456", "stop_4825", 1, departureTimestamp);
+            GtfsRealtime.FeedMessage realtimeFeed = createRealtimeFeed("trip_456", 1, departureTimestamp);
             when(gtfsClient.getTripUpdatesFeed()).thenReturn(realtimeFeed);
 
             // When
@@ -251,7 +251,35 @@ class TripServiceTest {
         }
     }
 
-    private GtfsRealtime.FeedMessage createRealtimeFeed(String tripId, String stopId, int stopSequence, long departureTime) {
+    @Nested
+    @DisplayName("getDepartureDelaySeconds()")
+    class GetDepartureDelaySecondsTests {
+
+        @Test
+        @DisplayName("Should calculate delay in seconds between scheduled and realtime")
+        void shouldCalculateDelayInSeconds() throws IOException {
+            // Given
+            String tripId = "trip_123";
+            List<String> stopIds = List.of("stop_1");
+            String scheduledTime = "12:30:00";
+
+            when(gtfsDataService.getStopIdForTripAndSequence(tripId, 1)).thenReturn("stop_1");
+
+            long realtimeTimestamp = LocalDateTime.of(2026, 1, 14, 12, 33, 0)
+                    .atZone(ZoneId.systemDefault())
+                    .toEpochSecond();
+            GtfsRealtime.FeedMessage realtimeFeed = createRealtimeFeed(tripId, 1, realtimeTimestamp);
+            when(gtfsClient.getTripUpdatesFeed()).thenReturn(realtimeFeed);
+
+            // When
+            Integer delay = tripService.getDepartureDelaySeconds(tripId, stopIds, scheduledTime);
+
+            // Then
+            assertThat(delay).isEqualTo(180); // 3 minuty opóźnienia = 180 sekund
+        }
+    }
+
+    private GtfsRealtime.FeedMessage createRealtimeFeed(String tripId, int stopSequence, long departureTime) {
         GtfsRealtime.FeedHeader header = GtfsRealtime.FeedHeader.newBuilder()
                 .setGtfsRealtimeVersion("2.0")
                 .setTimestamp(System.currentTimeMillis() / 1000)

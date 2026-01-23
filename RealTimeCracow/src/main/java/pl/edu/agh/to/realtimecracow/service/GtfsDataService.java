@@ -134,7 +134,7 @@ public class GtfsDataService {
 
     public DirectTripResult findBestDirectTrip(String feedType, List<String> fromStopIds, List<String> toStopIds,
                                                LocalDateTime at, Set<String> serviceIds) {
-        String fromTime = at.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        String fromTime = getTimeFormatted(at);
 
         DirectConnectionRepository.DirectTripRow row =
                 directConnectionRepository.findBestDirectTrip(feedType, fromStopIds, toStopIds, fromTime, serviceIds);
@@ -151,7 +151,7 @@ public class GtfsDataService {
             Set<String> serviceIds,
             int limit
     ) {
-        String fromTime = at.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        String fromTime = getTimeFormatted(at);
 
         List<DirectConnectionRepository.DirectTripRow> rows =
                 directConnectionRepository.findTopDirectTrips(feedType, fromStopIds, toStopIds, fromTime, serviceIds, limit);
@@ -169,8 +169,10 @@ public class GtfsDataService {
             Set<String> serviceIds,
             int limit
     ) {
-        String fromTime = at.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        String fromTime = getTimeFormatted(at);
         return nextDeparturesRepository.findNextDepartures(feedType, stopIds, line, fromTime, serviceIds, limit);
     }
-
+    private String getTimeFormatted(LocalDateTime at) {
+        return at.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+    }
 }
