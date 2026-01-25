@@ -1,26 +1,20 @@
 package pl.edu.agh.to.realtimecracow.mcp.tools;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 import pl.edu.agh.to.realtimecracow.mcp.dto.DepartureDto;
-import pl.edu.agh.to.realtimecracow.service.GtfsDataService;
-import pl.edu.agh.to.realtimecracow.service.TripService;
-
+import pl.edu.agh.to.realtimecracow.mcp.service.DepartureService;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Component
+@RequiredArgsConstructor
 public class DeparturesTool {
 
-    private final GtfsDataService gtfsDataService;
-    private final TripService tripService;
-
-    public DeparturesTool(GtfsDataService gtfsDataService, TripService tripService) {
-        this.gtfsDataService = gtfsDataService;
-        this.tripService = tripService;
-    }
+    private final DepartureService departureService;
 
     @Tool(description = "Get next departures for a specific stop and line")
     public List<DepartureDto> nextDepartures(
@@ -36,33 +30,29 @@ public class DeparturesTool {
             @ToolParam(description = "Optional: ISO datetime (e.g. '2025-01-23T14:30:00'). If not provided, uses current time.", required = false)
             String dateTime
     ) {
-        if (feedType == null || stopName == null || line == null) {
-            throw new IllegalArgumentException("feedType, stopName, and line are required");
-        }
+        validateRequiredParams(feedType, stopName, line);
 
-        LocalDateTime at = (dateTime == null || dateTime.isBlank())
+        LocalDateTime at = parseDateTime(dateTime);
+
+        return departureService.findNextDepartures(feedType, stopName, line, at);
+    }
+
+    private void validateRequiredParams(String feedType, String stopName, String line) {
+        List<String> missing = new ArrayList<>();
+        if (feedType == null || feedType.isBlank()) missing.add("feedType");
+        if (stopName == null || stopName.isBlank()) missing.add("stopName");
+        if (line == null || line.isBlank()) missing.add("line");
+
+        if (!missing.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Missing required parameter(s): " + String.join(", ", missing)
+            );
+        }
+    }
+
+    private LocalDateTime parseDateTime(String dateTime) {
+        return (dateTime == null || dateTime.isBlank())
                 ? LocalDateTime.now()
                 : LocalDateTime.parse(dateTime);
-
-        List<String> stopIds = gtfsDataService.getStopIdsByStopName(stopName);
-        if (stopIds.isEmpty()) return List.of();
-
-        Set<String> serviceIds = gtfsDataService.getActiveServiceIds(feedType, at.toLocalDate());
-        if (serviceIds.isEmpty()) return List.of();
-
-        var rows = gtfsDataService.findNextDeparturesRows(feedType, stopIds, line, at, serviceIds, 5);
-
-        return rows.stream().map(r -> {
-            Integer delaySeconds = tripService.getDepartureDelaySeconds(
-                    r.tripId(),
-                    stopIds,
-                    r.departureTime()
-            );
-
-            return new DepartureDto(
-                    r.departureTime(),
-                    delaySeconds
-            );
-        }).toList();
     }
 }

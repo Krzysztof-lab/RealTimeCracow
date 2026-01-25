@@ -3,7 +3,7 @@ Real-time public transport tracking and route planning server for Kraków, Polan
 
 ## Features
 
-### 🚌 REST API Endpoint
+### REST API Endpoint
 **GET /departures** - Find the fastest direct connection between two stops
 - **Parameters:**
   - `from` (required) - departure stop name
@@ -16,7 +16,7 @@ Real-time public transport tracking and route planning server for Kraków, Polan
   - Smart calendar handling with exceptions support
   - Automatic data refresh mechanism
 
-### 🔌 MCP Server Integration
+### MCP Server Integration
 - **List all stops** - retrieve complete list of available transit stops
 - **Connection search** - find 3 fastest connections between stops with optional date/time
 - **Departure board** - next 5 departures for specific stop and line with delay information

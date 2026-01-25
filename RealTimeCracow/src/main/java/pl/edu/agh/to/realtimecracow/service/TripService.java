@@ -102,16 +102,6 @@ public class TripService {
         }
     }
 
-    public String getRealtimeOrScheduledDeparture(String tripId, List<String> stopIds, String scheduledTime) {
-        try {
-            String realtime = getRealtimeDepartureTime(tripId, stopIds);
-            return realtime != null ? realtime : scheduledTime;
-        } catch (IOException e) {
-            log.warn("Failed to get realtime departure time, using scheduled", e);
-            return scheduledTime;
-        }
-    }
-
     private int secondsBetween(String scheduled, String realtime) {
         int s1 = toSeconds(scheduled);
         int s2 = toSeconds(realtime);

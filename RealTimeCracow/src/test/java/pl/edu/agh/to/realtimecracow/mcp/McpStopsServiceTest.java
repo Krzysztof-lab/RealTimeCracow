@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import pl.edu.agh.to.realtimecracow.entity.Stop;
 import pl.edu.agh.to.realtimecracow.mcp.dto.StopDto;
+import pl.edu.agh.to.realtimecracow.mcp.service.StopsService;
 import pl.edu.agh.to.realtimecracow.repository.StopRepository;
 
 import java.util.List;
@@ -20,11 +21,11 @@ class McpStopsServiceTest {
     @Mock
     private StopRepository stopRepository;
 
-    private McpStopsService mcpStopsService;
+    private StopsService mcpStopsService;
 
     @BeforeEach
     void setUp() {
-        mcpStopsService = new McpStopsService(stopRepository);
+        mcpStopsService = new StopsService(stopRepository);
     }
 
     @Test

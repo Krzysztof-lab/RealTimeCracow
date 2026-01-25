@@ -20,8 +20,8 @@ public class NextDeparturesRepository {
     public List<DepartureRow> findNextDepartures(
             String feedType,
             List<String> stopIds,
-            String line,            // route_short_name albo route_id
-            String fromTime,        // "HH:mm:ss"
+            String line,
+            String fromTime,
             Set<String> serviceIds,
             int limit
     ) {
@@ -33,8 +33,6 @@ public class NextDeparturesRepository {
         String stopIn = String.join(",", Collections.nCopies(stopIds.size(), "?"));
         String serviceIn = String.join(",", Collections.nCopies(serviceIds.size(), "?"));
 
-        // Zakładam, że masz tabelę route z kolumną route_short_name (bo ładujesz ją w cache).
-        // Line dopasujemy elastycznie: (route_short_name = ? OR route_id = ?)
         String sql = """
             SELECT t.trip_id,
                    t.route_id,

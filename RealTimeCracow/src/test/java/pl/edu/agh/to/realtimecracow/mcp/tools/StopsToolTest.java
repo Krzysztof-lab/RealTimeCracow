@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import pl.edu.agh.to.realtimecracow.mcp.McpStopsService;
+import pl.edu.agh.to.realtimecracow.mcp.service.StopsService;
 import pl.edu.agh.to.realtimecracow.mcp.dto.StopDto;
 
 import java.util.List;
@@ -17,7 +17,7 @@ import static org.mockito.Mockito.*;
 class StopsToolTest {
 
     @Mock
-    private McpStopsService mcpStopsService;
+    private StopsService mcpStopsService;
 
     private StopsTool stopsTool;
 
