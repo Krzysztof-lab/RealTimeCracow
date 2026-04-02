@@ -1,34 +1,62 @@
 # RealTimeCracow
-Real-time public transport tracking and route planning server for Kraków, Poland. Built with Java and Spring Boot, utilizing GTFS (General Transit Feed Specification) data to provide accurate information about trams and buses.
+
+Real-time public transport tracking and route planning API for Kraków, Poland.  
+Built with **Java + Spring Boot**, parsing live **GTFS-RT** feeds to serve 
+accurate departure and delay data for trams and buses.
+
+> Integrates as an **MCP Server** — plug directly into Cursor, Claude Desktop, 
+> Windsurf or any AI agent to query Kraków transit in natural language.
+
+## Tech Stack
+
+- **Java + Spring Boot** — REST API backend
+- **GTFS / GTFS-Realtime** — static schedules + live delay feeds
+- **Protocol Buffers** — GTFS-RT binary data parsing
+- **SSE (Server-Sent Events)** — MCP transport layer
+- **Gradle** — build & dependency management
 
 ## Features
 
-### REST API Endpoint
-**GET /departures** - Find the fastest direct connection between two stops
-- **Parameters:**
-  - `from` (required) - departure stop name
-  - `to` (required) - destination stop name
-  - `at` (optional) - departure time in ISO format (defaults to current time)
-  - `feedType` (required) - type of GTFS feed to use
-- **Response:** Next available direct departure with real-time delay information
-- **Features:**
-  - Real-time delay tracking from GTFS Realtime data
-  - Smart calendar handling with exceptions support
-  - Automatic data refresh mechanism
+### REST API
 
-### MCP Server Integration
-- **List all stops** - retrieve complete list of available transit stops
-- **Connection search** - find 3 fastest connections between stops with optional date/time
-- **Departure board** - next 5 departures for specific stop and line with delay information
+**GET /departures** — fastest direct connection between two stops
 
-## MCP Client Configuration
+| Parameter  | Required | Description |
+|------------|----------|-------------|
+| `from`     | ✅       | Departure stop name |
+| `to`       | ✅       | Destination stop name |
+| `feedType` | ✅       | GTFS feed type (tram/bus) |
+| `at`       | ❌       | Departure time ISO 8601 (default: now) |
+
+- Live delay tracking from GTFS-RT stream
+- Smart calendar handling with service exceptions
+- Automatic feed refresh mechanism
+
+### MCP Server (AI Agent Integration)
+
+Connect any MCP-compatible AI agent to Kraków public transport data:
+
+- `list_stops` — full list of available transit stops  
+- `search_connections` — 3 fastest connections between stops  
+- `departure_board` — next 5 departures for a given stop & line with delays
+
+## Quick Start
 
 ### Prerequisites
-Run the application on localhost (default port: 8080)
+- Java 21+
+- Gradle 8+ (wrapper included)
 
-### Setup
-Add the following configuration to your AI agent's MCP settings (works with Cursor, Windsurf, Claude Desktop, etc.):
-```jsonc
+### Run locally
+```bash
+git clone https://github.com/Krzysztof-lab/RealTimeCracow
+cd RealTimeCracow
+./gradlew bootRun
+# API available at http://localhost:8080
+```
+
+### Connect to AI Agent (MCP)
+Add to your agent's MCP config (Cursor, Claude Desktop, Windsurf):
+```json
 {
   "mcpServers": {
     "realtime-cracow": {
@@ -38,31 +66,30 @@ Add the following configuration to your AI agent's MCP settings (works with Curs
 }
 ```
 
-### Usage
-Once configured, your AI agent can:
-- Query Kraków public transport schedules
-- Search for optimal connections
-- Check real-time delays and departures
-- Access complete stop information
-  
-## Technology Stack
-- **Java** - core programming language
-- **Spring Boot** - application framework
-- **Protocol Buffers** - GTFS Realtime data parsing
-
 ## Architecture
-Application follows SOLID principles and leverages proven design patterns:
-- REST controller layer
-- Business services for GTFS data processing
-- Data repositories with automatic refresh mechanism
-- Calendar and exceptions handling
-- Integrated real-time delay tracking
-  
+```
+┌─────────────────────────────────────┐
+│           REST Controller           │
+├─────────────────────────────────────┤
+│         Business Services           │
+│   (GTFS parsing, route search,      │
+│    delay calculation, calendar)     │
+├─────────────────────────────────────┤
+│      Data Repositories              │
+│   (auto-refresh, GTFS-RT stream)    │
+└─────────────────────────────────────┘
+```
+
+SOLID principles throughout — clean separation between 
+controller, service and data layers.
+
 ## Data Sources
-- [GTFS Documentation](https://gtfs.org/documentation/overview/)
-- [Kraków GTFS Feed](https://gtfs.ztp.krakow.pl/)
+
+- [GTFS Specification](https://gtfs.org/documentation/overview/)
+- [Kraków GTFS Feed — ZTP Kraków](https://gtfs.ztp.krakow.pl/)
 
 ## Authors
+
 - Krzysztof Pieczka
-- Jakub Biłko
+- Jakub Biłko  
 - Szymon Semeńczuk
