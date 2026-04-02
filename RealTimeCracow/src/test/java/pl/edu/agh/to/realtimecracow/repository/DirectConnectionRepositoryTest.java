@@ -75,32 +75,32 @@ class DirectConnectionRepositoryTest {
         trip1.setServiceId("service_weekday");
         tripRepository.save(trip1);
 
-        StopTime st1_1 = new StopTime();
-        st1_1.setTripId("trip_1");
-        st1_1.setFeedType("M");
-        st1_1.setStopSequence(1);
-        st1_1.setStopId("stop_A");
-        st1_1.setDepartureTime("12:00:00");
-        st1_1.setArrivalTime("12:00:00");
-        stopTimeRepository.save(st1_1);
+        StopTime st11 = new StopTime();
+        st11.setTripId("trip_1");
+        st11.setFeedType("M");
+        st11.setStopSequence(1);
+        st11.setStopId("stop_A");
+        st11.setDepartureTime("12:00:00");
+        st11.setArrivalTime("12:00:00");
+        stopTimeRepository.save(st11);
 
-        StopTime st1_2 = new StopTime();
-        st1_2.setTripId("trip_1");
-        st1_2.setFeedType("M");
-        st1_2.setStopSequence(2);
-        st1_2.setStopId("stop_B");
-        st1_2.setDepartureTime("12:15:00");
-        st1_2.setArrivalTime("12:14:30");
-        stopTimeRepository.save(st1_2);
+        StopTime st12 = new StopTime();
+        st12.setTripId("trip_1");
+        st12.setFeedType("M");
+        st12.setStopSequence(2);
+        st12.setStopId("stop_B");
+        st12.setDepartureTime("12:15:00");
+        st12.setArrivalTime("12:14:30");
+        stopTimeRepository.save(st12);
 
-        StopTime st1_3 = new StopTime();
-        st1_3.setTripId("trip_1");
-        st1_3.setFeedType("M");
-        st1_3.setStopSequence(3);
-        st1_3.setStopId("stop_C");
-        st1_3.setDepartureTime("12:30:00");
-        st1_3.setArrivalTime("12:29:30");
-        stopTimeRepository.save(st1_3);
+        StopTime st13 = new StopTime();
+        st13.setTripId("trip_1");
+        st13.setFeedType("M");
+        st13.setStopSequence(3);
+        st13.setStopId("stop_C");
+        st13.setDepartureTime("12:30:00");
+        st13.setArrivalTime("12:29:30");
+        stopTimeRepository.save(st13);
 
         Trip trip2 = new Trip();
         trip2.setTripId("trip_2");
@@ -109,23 +109,23 @@ class DirectConnectionRepositoryTest {
         trip2.setServiceId("service_weekday");
         tripRepository.save(trip2);
 
-        StopTime st2_1 = new StopTime();
-        st2_1.setTripId("trip_2");
-        st2_1.setFeedType("M");
-        st2_1.setStopSequence(1);
-        st2_1.setStopId("stop_A");
-        st2_1.setDepartureTime("12:30:00");
-        st2_1.setArrivalTime("12:30:00");
-        stopTimeRepository.save(st2_1);
+        StopTime st21 = new StopTime();
+        st21.setTripId("trip_2");
+        st21.setFeedType("M");
+        st21.setStopSequence(1);
+        st21.setStopId("stop_A");
+        st21.setDepartureTime("12:30:00");
+        st21.setArrivalTime("12:30:00");
+        stopTimeRepository.save(st21);
 
-        StopTime st2_2 = new StopTime();
-        st2_2.setTripId("trip_2");
-        st2_2.setFeedType("M");
-        st2_2.setStopSequence(2);
-        st2_2.setStopId("stop_B");
-        st2_2.setDepartureTime("12:45:00");
-        st2_2.setArrivalTime("12:44:30");
-        stopTimeRepository.save(st2_2);
+        StopTime st22 = new StopTime();
+        st22.setTripId("trip_2");
+        st22.setFeedType("M");
+        st22.setStopSequence(2);
+        st22.setStopId("stop_B");
+        st22.setDepartureTime("12:45:00");
+        st22.setArrivalTime("12:44:30");
+        stopTimeRepository.save(st22);
 
         Trip trip3 = new Trip();
         trip3.setTripId("trip_3");
@@ -134,23 +134,23 @@ class DirectConnectionRepositoryTest {
         trip3.setServiceId("service_weekday");
         tripRepository.save(trip3);
 
-        StopTime st3_1 = new StopTime();
-        st3_1.setTripId("trip_3");
-        st3_1.setFeedType("M");
-        st3_1.setStopSequence(1);
-        st3_1.setStopId("stop_B");
-        st3_1.setDepartureTime("13:00:00");
-        st3_1.setArrivalTime("13:00:00");
-        stopTimeRepository.save(st3_1);
+        StopTime st31 = new StopTime();
+        st31.setTripId("trip_3");
+        st31.setFeedType("M");
+        st31.setStopSequence(1);
+        st31.setStopId("stop_B");
+        st31.setDepartureTime("13:00:00");
+        st31.setArrivalTime("13:00:00");
+        stopTimeRepository.save(st31);
 
-        StopTime st3_2 = new StopTime();
-        st3_2.setTripId("trip_3");
-        st3_2.setFeedType("M");
-        st3_2.setStopSequence(2);
-        st3_2.setStopId("stop_A");
-        st3_2.setDepartureTime("13:15:00");
-        st3_2.setArrivalTime("13:14:30");
-        stopTimeRepository.save(st3_2);
+        StopTime st32 = new StopTime();
+        st32.setTripId("trip_3");
+        st32.setFeedType("M");
+        st32.setStopSequence(2);
+        st32.setStopId("stop_A");
+        st32.setDepartureTime("13:15:00");
+        st32.setArrivalTime("13:14:30");
+        stopTimeRepository.save(st32);
 
         Trip trip4 = new Trip();
         trip4.setTripId("trip_4");
@@ -159,23 +159,23 @@ class DirectConnectionRepositoryTest {
         trip4.setServiceId("service_weekend");
         tripRepository.save(trip4);
 
-        StopTime st4_1 = new StopTime();
-        st4_1.setTripId("trip_4");
-        st4_1.setFeedType("M");
-        st4_1.setStopSequence(1);
-        st4_1.setStopId("stop_A");
-        st4_1.setDepartureTime("12:00:00");
-        st4_1.setArrivalTime("12:00:00");
-        stopTimeRepository.save(st4_1);
+        StopTime st41 = new StopTime();
+        st41.setTripId("trip_4");
+        st41.setFeedType("M");
+        st41.setStopSequence(1);
+        st41.setStopId("stop_A");
+        st41.setDepartureTime("12:00:00");
+        st41.setArrivalTime("12:00:00");
+        stopTimeRepository.save(st41);
 
-        StopTime st4_2 = new StopTime();
-        st4_2.setTripId("trip_4");
-        st4_2.setFeedType("M");
-        st4_2.setStopSequence(2);
-        st4_2.setStopId("stop_B");
-        st4_2.setDepartureTime("12:15:00");
-        st4_2.setArrivalTime("12:14:30");
-        stopTimeRepository.save(st4_2);
+        StopTime st42 = new StopTime();
+        st42.setTripId("trip_4");
+        st42.setFeedType("M");
+        st42.setStopSequence(2);
+        st42.setStopId("stop_B");
+        st42.setDepartureTime("12:15:00");
+        st42.setArrivalTime("12:14:30");
+        stopTimeRepository.save(st42);
 
         entityManager.flush();
     }
@@ -284,23 +284,23 @@ class DirectConnectionRepositoryTest {
         trip5.setServiceId("service_weekday");
         tripRepository.save(trip5);
 
-        StopTime st5_1 = new StopTime();
-        st5_1.setTripId("trip_5");
-        st5_1.setFeedType("M");
-        st5_1.setStopSequence(1);
-        st5_1.setStopId("stop_A2"); // Alternative stop ID
-        st5_1.setDepartureTime("11:00:00");
-        st5_1.setArrivalTime("11:00:00");
-        stopTimeRepository.save(st5_1);
+        StopTime st51 = new StopTime();
+        st51.setTripId("trip_5");
+        st51.setFeedType("M");
+        st51.setStopSequence(1);
+        st51.setStopId("stop_A2");
+        st51.setDepartureTime("11:00:00");
+        st51.setArrivalTime("11:00:00");
+        stopTimeRepository.save(st51);
 
-        StopTime st5_2 = new StopTime();
-        st5_2.setTripId("trip_5");
-        st5_2.setFeedType("M");
-        st5_2.setStopSequence(2);
-        st5_2.setStopId("stop_B");
-        st5_2.setDepartureTime("11:15:00");
-        st5_2.setArrivalTime("11:14:30");
-        stopTimeRepository.save(st5_2);
+        StopTime st52 = new StopTime();
+        st52.setTripId("trip_5");
+        st52.setFeedType("M");
+        st52.setStopSequence(2);
+        st52.setStopId("stop_B");
+        st52.setDepartureTime("11:15:00");
+        st52.setArrivalTime("11:14:30");
+        stopTimeRepository.save(st52);
 
         entityManager.flush();
 

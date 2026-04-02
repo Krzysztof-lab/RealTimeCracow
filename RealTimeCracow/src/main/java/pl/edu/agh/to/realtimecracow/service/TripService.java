@@ -91,6 +91,31 @@ public class TripService {
                 .orElse(null);
     }
 
+    public Integer getDepartureDelaySeconds(String tripId, List<String> stopIds, String scheduledTime) {
+        try {
+            String realtime = getRealtimeDepartureTime(tripId, stopIds);
+            if (realtime == null) return 0;
+            return secondsBetween(scheduledTime, realtime);
+        } catch (IOException e) {
+            log.warn("Failed to get realtime delay, using 0", e);
+            return 0;
+        }
+    }
+
+    private int secondsBetween(String scheduled, String realtime) {
+        int s1 = toSeconds(scheduled);
+        int s2 = toSeconds(realtime);
+        return s2 - s1;
+    }
+
+    private int toSeconds(String t) {
+        String[] p = t.split(":");
+        int h = Integer.parseInt(p[0]);
+        int m = Integer.parseInt(p[1]);
+        int s = Integer.parseInt(p[2]);
+        return h * 3600 + m * 60 + s;
+    }
+
     private String extractTripId(String entityId) {
         return entityId.substring(7);
     }
